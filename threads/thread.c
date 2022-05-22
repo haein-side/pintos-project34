@@ -127,6 +127,7 @@ thread_init (void) {
 void update_next_tick_to_awake(int64_t ticks){
 	// thread_sleep에서 호출된 함수로, tick으로 받아온 변수의 값이 이전 next_tick보다 작으면 그 tick값을 next_tick값으로 바꿔주고 원래의 값이 더 작다면 기존 값을 유지한다.
 	next_tick_to_awake = (next_tick_to_awake>ticks) ? ticks : next_tick_to_awake;
+
 }
 
 int64_t get_next_tick_to_awake(void){
@@ -160,12 +161,12 @@ void thread_awake(int64_t ticks){
 	// sleeplist의 head를 가져온다
 	struct list_elem* cur = list_begin(&sleep_list);
 	struct thread* t;
+	next_tick_to_awake = INT64_MAX;
 
 	// sleep list의 끝까지 순회한다.
 	while(cur != list_end(&sleep_list)){
-		// list_entry 해당 구조체의 시작 주소(thread->elem의 주소값)
+		// list_entry 해당 구조체의 시작 주소
 		t = list_entry(cur, struct thread, elem);
-
 		// 리스트 안에 구조체의 깨울 시간이 지났다면,
 		if(ticks >= t->wakeup_tick){
 			cur = list_remove(&t->elem);
@@ -173,9 +174,11 @@ void thread_awake(int64_t ticks){
 		}
 		else{
 			cur = list_next(cur);
-			update_next_tick_to_awake(t->wakeup_tick);	// next_tick이 바뀌었을 수 있으므로 업데이트
+			update_next_tick_to_awake(t->wakeup_tick);
 		}
+		// next_tick이 바뀌었을 수 있으므로 업데이트
 	}
+	printf("next tick값 : %ld\n", next_tick_to_awake);
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
