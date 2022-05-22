@@ -88,12 +88,12 @@ typedef int tid_t;
 struct thread {
 	/* Owned by thread.c. */
 	tid_t tid;                          /* Thread identifier. */
-	enum thread_status status;          /* Thread state. */
+	enum thread_status status;          /* 쓰레드 상태, ex) thread_running, thread_ready, thread_blocked, thread_dying */
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* Priority. */
 
 	/* Shared between thread.c and synch.c. */
-	struct list_elem elem;              /* List element. */
+	struct list_elem elem;              /* readylist나 semaphore의 waiting list에서 대기중일 때 doubly linkedlist 형태로 존재하는데 그 앞뒤 프로세스를 찾기위함 */
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
@@ -103,7 +103,8 @@ struct thread {
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
 #endif
-
+	// 깨어나야할 tick 시간
+	int64_t wakeup_tick;
 	/* Owned by thread.c. */
 	struct intr_frame tf;               /* Information for switching */
 	unsigned magic;                     /* Detects stack overflow. */

@@ -158,9 +158,13 @@ list_insert (struct list_elem *before, struct list_elem *elem) {
 	ASSERT (is_interior (before) || is_tail (before));
 	ASSERT (elem != NULL);
 
+	// elem의 prev를 before의 prev로
 	elem->prev = before->prev;
+	// elem의 next를 before로
 	elem->next = before;
+	// before의 prev의 next를 elem으로
 	before->prev->next = elem;
+	// before의 prev를 elem으로
 	before->prev = elem;
 }
 
