@@ -66,6 +66,8 @@ static void init_thread (struct thread *, const char *name, int priority);
 static void do_schedule(int status);
 static void schedule (void);
 static tid_t allocate_tid (void);
+void test_max_priority(void);
+bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
 /* Returns true if T appears to point to a valid thread. */
 #define is_thread(t) ((t) != NULL && (t)->magic == THREAD_MAGIC)
@@ -178,7 +180,6 @@ void thread_awake(int64_t ticks){
 		}
 		// next_tick이 바뀌었을 수 있으므로 업데이트
 	}
-	printf("next tick값 : %ld\n", next_tick_to_awake);
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -277,9 +278,36 @@ thread_create (const char *name, int priority,
 
 	/* Add to run queue. */
 	thread_unblock (t);
+	// 추가한 부분
+	test_max_priority();
 
 	return tid;
 }
+
+void test_max_priority(void) {
+	int pri = thread_get_priority();
+	struct list_elem *cur = list_begin(&ready_list);
+	struct thread *t1;
+	t1 = list_entry(cur, struct thread, elem);
+
+	if (pri < t1->priority)
+		thread_yield();
+}
+
+bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+	struct thread *p1;
+	struct thread *p2;
+	p1 = list_entry(a, struct thread, elem);
+	p2 = list_entry(b, struct thread, elem);
+
+	if (p1->priority > p2->priority)
+		return 1;
+	else
+		return 0;
+}
+
+
+
 
 /* Puts the current thread to sleep.  It will not be scheduled
    again until awoken by thread_unblock().
@@ -311,7 +339,7 @@ thread_unblock (struct thread *t) {
 
 	old_level = intr_disable ();
 	ASSERT (t->status == THREAD_BLOCKED);
-	list_push_back (&ready_list, &t->elem);
+	list_insert_ordered(&ready_list, &t->elem, cmp_priority, NULL);
 	t->status = THREAD_READY;
 	intr_set_level (old_level);
 }
@@ -377,7 +405,7 @@ thread_yield (void) {
 	old_level = intr_disable ();	// timer인터럽트나 i/o 인터럽트같은 것들를 disable한다.
 	// 만약 현재 스레드가 Idle 스레드가 아니라면 ready queue에 다시 담는다.
 	if (curr != idle_thread)
-		list_push_back (&ready_list, &curr->elem);
+		list_insert_ordered(&ready_list, &curr->elem, cmp_priority, NULL);
 	// 현재 스레드가 idle이라면 ready queue에 담을필요가 없다. 어차피 static으로 선언되어 있어, 필요할 때 불러올 수 있다.
 	do_schedule (THREAD_READY);
 	intr_set_level (old_level);
@@ -387,6 +415,7 @@ thread_yield (void) {
 void
 thread_set_priority (int new_priority) {
 	thread_current ()->priority = new_priority;
+	test_max_priority();
 }
 
 /* Returns the current thread's priority. */
