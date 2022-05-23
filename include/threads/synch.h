@@ -6,8 +6,8 @@
 
 /* A counting semaphore. */
 struct semaphore {
-	unsigned value;             /* Current value. */
-	struct list waiters;        /* List of waiting threads. */
+	unsigned value;             /* 공유자원의 갯수를 의미한다. */
+	struct list waiters;        /* 공유자원을 사용하기 위해 대기하는 waiters의 리스트 */
 };
 
 void sema_init (struct semaphore *, unsigned value);
@@ -15,11 +15,12 @@ void sema_down (struct semaphore *);
 bool sema_try_down (struct semaphore *);
 void sema_up (struct semaphore *);
 void sema_self_test (void);
+bool cmp_sem_priority (const struct list_elem *a, const struct list_elem *b, void *aux);
 
 /* Lock. */
 struct lock {
-	struct thread *holder;      /* Thread holding lock (for debugging). */
-	struct semaphore semaphore; /* Binary semaphore controlling access. */
+	struct thread *holder;      /* 현재 lock을 가지고 있는 thread 정보 */
+	struct semaphore semaphore; /* 0과 1로 이루어진 세마포어 */
 };
 
 void lock_init (struct lock *);
@@ -30,7 +31,7 @@ bool lock_held_by_current_thread (const struct lock *);
 
 /* Condition variable. */
 struct condition {
-	struct list waiters;        /* List of waiting threads. */
+	struct list waiters;        /* condition variabels가 만족하기를 기다리는 waiters의 리스트를 가진다. */
 };
 
 void cond_init (struct condition *);
