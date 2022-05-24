@@ -32,6 +32,10 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
+void donate_priority(void);
+void remove_with_lock(struct lock *lock);
+void refresh_priority(void);
+
 // list_entry (list_pop_front (&sema->waiters), struct thread, elem));
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -58,6 +62,7 @@ sema_init (struct semaphore *sema, unsigned value) {
    interrupts disabled, but if it sleeps then the next scheduled
    thread will probably turn interrupts back on. This is
    sema_down function. */
+
 /* 공유자원을 사용하고자 하는 스레드는 semadown을 실행하고, 사용가능한 자원이 없다면, sema->waiter리스트에 listpushback함수로 맨 뒤에 추가된다.
 */
 void
@@ -113,12 +118,16 @@ sema_up (struct semaphore *sema) {
 	ASSERT (sema != NULL);
 
 	old_level = intr_disable ();
+	// 리스트 pop을 하기 전에 항상 list가 empty 상태가 아닌지 확인해주는 습관을 들이자!
 	if (!list_empty (&sema->waiters)){
+		// waiters에 있는 쓰레드의 우선순위가 변경되었을 경우를 고려하여 정렬해준다.
 		list_sort(&sema->waiters, cmp_priority, NULL);
+		// 정렬 후의 리스트에서 가장 우선순위가 높은 것을 가져와서 thread를 Status가 THREADRUNNING으로 바꾸어준다.
 		thread_unblock (list_entry (list_pop_front (&sema->waiters), struct thread, elem));
 	}
 	sema->value++;
-	// 현재 thread_current의 우선순위와 ready que	안에 있는 priority의 최댓값을 비교하여 높은 우선순위 thread를 yield해준다
+	// 현재 thread_current의 우선순위와 ready que 안에 있는 priority의 최댓값을 비교하여 높은 우선순위 thread를 yield해준다.
+	// 더 높은 우선순위를 선점시키기 위한 장치로서 선언해주었다.
 	test_max_priority();
 	intr_set_level (old_level);
 }
@@ -190,13 +199,59 @@ lock_init (struct lock *lock) {
    interrupts disabled, but interrupts will be turned back on if
    we need to sleep. */
 void
+donate_priority(void){
+	struct thread *t = thread_current();
+	int depth = 0;
+	while(t->wait_on_lock != NULL && depth <= 7){
+		depth++;
+		struct thread *tmp = t->wait_on_lock->holder;
+		tmp->priority = t->priority;
+		t = tmp;
+	}
+}
+
+void
+remove_with_lock(struct lock *lock){
+	struct thread *p1 = thread_current();
+	// p1->list_donation
+	struct list_elem *liem;
+	for(liem = list_begin(&p1->list_donation); liem != list_end(&p1->list_donation); liem = list_next(liem)){
+		if(list_entry(liem, struct thread, donation_elem)->wait_on_lock == lock){
+			list_remove(liem);
+		}
+	}
+}
+
+void
+refresh_priority(void){
+	struct thread *p1 = thread_current();
+	p1->priority = p1->init_priority;
+
+	if(!list_empty(&p1->list_donation)){
+		int new_priority = list_entry(list_begin(&p1->list_donation), struct thread, donation_elem)->priority;
+		if (p1->priority < new_priority) {
+			p1->priority = new_priority;
+		}
+	}
+}
+
+void
 lock_acquire (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (!intr_context ());
 	ASSERT (!lock_held_by_current_thread (lock));
 
+	struct thread *p1 = thread_current();
+
+	if(lock->holder != NULL) {
+		// 현재 lock을 요청하는 current thread의 wait on lock 에 lock 주소필드를 저장해준다.
+		p1->wait_on_lock = lock;
+		donate_priority();
+		list_insert_ordered(&lock->holder->list_donation, &p1->donation_elem,cmp_priority, NULL);
+	}
 	sema_down (&lock->semaphore);
 	lock->holder = thread_current ();
+	p1->wait_on_lock = NULL;
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -228,7 +283,8 @@ void
 lock_release (struct lock *lock) {
 	ASSERT (lock != NULL);
 	ASSERT (lock_held_by_current_thread (lock));
-
+	remove_with_lock(lock);
+	refresh_priority(); //-> 빌렸던 내 원래의 우선순의를 원복한다.
 	lock->holder = NULL;
 	sema_up (&lock->semaphore);
 }
@@ -288,7 +344,7 @@ cond_wait (struct condition *cond, struct lock *lock) {
 	ASSERT (!intr_context ());
 	ASSERT (lock_held_by_current_thread (lock));
 
-	sema_init (&waiter.semaphore, 0);
+	sema_init (&waiter.semaphore, 0);				// semaphore_elem의 semaphore value를 0으로 초기화 시켜준다.
 	list_insert_ordered (&cond->waiters, &waiter.elem, cmp_sem_priority, NULL);
 	lock_release (lock);
 	sema_down (&waiter.semaphore);
@@ -331,6 +387,7 @@ cond_broadcast (struct condition *cond, struct lock *lock) {
 		cond_signal (cond, lock);
 }
 
+// condition waiter의 thread 우선순위 값을 비교하기 위해 함수 선언하였다.
 bool cmp_sem_priority (const struct list_elem *a, const struct list_elem *b, void *aux){
 	struct semaphore *wait1 = &(list_entry(a, struct semaphore_elem, elem)->semaphore);
 	struct semaphore *wait2 = &(list_entry(b, struct semaphore_elem, elem)->semaphore);

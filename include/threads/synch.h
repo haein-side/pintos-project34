@@ -33,7 +33,9 @@ bool lock_held_by_current_thread (const struct lock *);
 struct condition {
 	struct list waiters;        /* condition variabels가 만족하기를 기다리는 waiters의 리스트를 가진다. */
 };
-
+void donate_priority(void);
+void remove_with_lock(struct lock *lock);
+void refresh_priority(void);
 void cond_init (struct condition *);
 void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);

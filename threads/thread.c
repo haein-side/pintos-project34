@@ -414,7 +414,9 @@ thread_yield (void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->priority = new_priority;
+	thread_current ()->init_priority = new_priority;
+	refresh_priority();
+
 	test_max_priority();
 }
 
@@ -516,6 +518,9 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->tf.rsp = (uint64_t) t + PGSIZE - sizeof (void *);	// 커널 스택 포인터의 위치를 정해준다. 원래 스레드의 위치 t + 4kb(1<<12) - 포인터 변수 크기
 	t->priority = priority;		// 우선순위 정해준다.
 	t->magic = THREAD_MAGIC;	// 스레드 공간의 끝주소 값은 동일하기 때문에 기본 값으로 넣어준다.
+	t->init_priority = priority;
+	t->wait_on_lock = NULL;
+	list_init(&t->list_donation);
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
