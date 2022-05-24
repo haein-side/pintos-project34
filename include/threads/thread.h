@@ -86,33 +86,35 @@ typedef int tid_t;
  * ready state is on the run queue, whereas only a thread in the
  * blocked state is on a semaphore wait list. */
 struct thread {
-	/* Owned by thread.c. */
-	tid_t tid;                          /* Thread identifier. */
-	enum thread_status status;          /* 쓰레드 상태, ex) thread_running, thread_ready, thread_blocked, thread_dying */
-	char name[16];                      /* Name (for debugging purposes). */
-	int priority;                       /* Priority. */
-	int init_priority;
-	struct lock *wait_on_lock; // 대기하고있는 lock자료구조의주소를저장할필드 wait_lock
-	struct list list_donation; //
-	struct list_elem donation_elem;  // list_donation에 넣어줄 성분
-	/* Shared between thread.c and synch.c. */
-	struct list_elem elem;              /* readylist나 semaphore의 waiting list에서 대기중일 때 doubly linkedlist 형태로 존재하는데 그 앞뒤 프로세스를 찾기위함 */
+   /* Owned by thread.c. */
+   tid_t tid;                          /* 스레드 ID */
+   enum thread_status status;          /* 스레드 상태 : THREAD_RUNNING, THREAD_READY, THREAD_BLOCKED, THREAD_DYING*/
+   char name[16];                      /* Name (for debugging purposes). */
+   int priority;                       /* 우선순위 : PRI_MIN, PRI_DEFAULT, PRI_MAX, ...*/
+
+   /* Shared between thread.c and synch.c. */
+   struct list_elem elem;              /* readylist나 semaphore의 waiting list에서 대기중일 때 doubly linkedlist 형태로 존재하는데 그 앞뒤 프로세스를 찾기위함 */
+
+   /* priority-donation 관련 */
+   int init_priority;            // 원래 priority 저장
+   struct lock *wait_on_lock;       // lock 주소 생성하여, 해당 lock을 대기하고 있는 스레드가 값을 저장해 놓도록 함
+   struct list list_donation;       // 우선순위를 기부해 준 donation_elem 리스트
+   struct list_elem donation_elem; // list_donation에 넣어줄 성분
 
 #ifdef USERPROG
-	/* Owned by userprog/process.c. */
-	uint64_t *pml4;                     /* Page map level 4 */
+   /* Owned by userprog/process.c. */
+   uint64_t *pml4;                     /* Page map level 4 */
 #endif
 #ifdef VM
-	/* Table for whole virtual memory owned by thread. */
-	struct supplemental_page_table spt;
+   /* Table for whole virtual memory owned by thread. */
+   struct supplemental_page_table spt;
 #endif
-	// 깨어나야할 tick 시간
-	int64_t wakeup_tick;
-	/* Owned by thread.c. */
-	struct intr_frame tf;               /* Information for switching */
-	unsigned magic;                     /* Detects stack overflow. */
+   // 깨어나야할 tick 시간
+   int64_t wakeup_tick;
+   /* Owned by thread.c. */
+   struct intr_frame tf;               /* Information for switching */
+   unsigned magic;                     /* 스택 오버플로우 감지 */
 };
-
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */

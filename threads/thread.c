@@ -414,13 +414,13 @@ thread_yield (void) {
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) {
-	thread_current ()->init_priority = new_priority;
-	refresh_priority();
+   thread_current ()->init_priority = new_priority;   // 새로운 우선순위로 조정
 
-	test_max_priority();
+   refresh_priority();      // priority-donation 관련 //donation으로 priority가 변경될 수 있으므로 확인
+   test_max_priority();   // priority-Synchronization 관련 // ready_list에서 우선순위가 가장 높은 스레드와 현재 스레드의 우선순위 비교하여, 현재 스레드가 낮다면 thread_yield
 }
-
 /* Returns the current thread's priority. */
+
 int
 thread_get_priority (void) {
 	return thread_current ()->priority;
