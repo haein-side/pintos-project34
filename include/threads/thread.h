@@ -91,7 +91,10 @@ struct thread {
 	enum thread_status status;          /* 쓰레드 상태, ex) thread_running, thread_ready, thread_blocked, thread_dying */
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* Priority. */
-
+	int init_priority;
+	struct lock *wait_on_lock; // 대기하고있는 lock자료구조의주소를저장할필드 wait_lock
+	struct list list_donation; //
+	struct list_elem donation_elem;  // list_donation에 넣어줄 성분
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* readylist나 semaphore의 waiting list에서 대기중일 때 doubly linkedlist 형태로 존재하는데 그 앞뒤 프로세스를 찾기위함 */
 
