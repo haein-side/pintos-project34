@@ -126,7 +126,21 @@ timer_interrupt (struct intr_frame *args UNUSED) {
 	// 틱은 인터럽트가 발생할 때마다 틱은 증가한다.
 	ticks++;
 	thread_tick ();
-	// 아래 두줄은 추가해준 부분
+
+	/* P1_advanced_scheduler */
+	if (thread_mlfqs) {
+		struct thread *cur = thread_current();
+		cur->recent_cpu++;
+		if (ticks % 4 == 0) {
+			mlfqs_priority(thread_current());
+			if (ticks % TIMER_FREQ == 0) {
+				mlfqs_load_avg();
+				mlfqs_recalc();
+			}
+		}
+	}
+	
+	/* P1_alarm */ 
 	// next tict to awake값이 흐른 tick보다 작거나 같아지면 thread awake 함수를 호출한다.
 	if (get_next_tick_to_awake() <= ticks)
 		thread_awake(ticks);
