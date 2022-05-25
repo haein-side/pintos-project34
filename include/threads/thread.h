@@ -94,6 +94,7 @@ struct thread {
 
    /* Shared between thread.c and synch.c. */
    struct list_elem elem;              /* readylist나 semaphore의 waiting list에서 대기중일 때 doubly linkedlist 형태로 존재하는데 그 앞뒤 프로세스를 찾기위함 */
+   struct list_elem all_elem;
 
    /* priority-donation 관련 */
    int init_priority;            // 원래 priority 저장
