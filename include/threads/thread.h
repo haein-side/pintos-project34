@@ -101,6 +101,10 @@ struct thread {
    struct list list_donation;       // 우선순위를 기부해 준 donation_elem 리스트
    struct list_elem donation_elem; // list_donation에 넣어줄 성분
 
+   /* project1_advanced-scheduler */
+   int nice;
+   int recent_cpu;
+
 #ifdef USERPROG
    /* Owned by userprog/process.c. */
    uint64_t *pml4;                     /* Page map level 4 */
@@ -150,6 +154,11 @@ int thread_get_load_avg (void);
 void test_max_priority(void);
 bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
 
+void mlfqs_priority(struct thread *t);
+void mlfqs_recent_cpu(struct thread *t);
+void mlfqs_load_avg(void);
+void mlfqs_increment(void);
+void mlfqs_recalc(void);
 
 void do_iret (struct intr_frame *tf);
 

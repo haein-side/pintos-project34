@@ -246,10 +246,12 @@ lock_acquire (struct lock *lock) {
 
    struct thread *p1 = thread_current();
 
-   if(lock->holder != NULL) {      /* lock->holder가 존재할 경우 */
-      p1->wait_on_lock = lock;   // 현재 lock을 요청하는 current thread의 wait on lock 에 lock 주소필드를 저장해준다.
-      donate_priority();         // 현재 스레드의 우선순위 기부 -> 우선순위 역전 방지
-      list_insert_ordered(&lock->holder->list_donation, &p1->donation_elem,cmp_priority, NULL); // holder의 list_donation에 현재 스레드 정보(elem)를 우선순위 높은순으로 저장
+   if (!thread_mlfqs) {
+      if(lock->holder != NULL) {      /* lock->holder가 존재할 경우 */
+         p1->wait_on_lock = lock;   // 현재 lock을 요청하는 current thread의 wait on lock 에 lock 주소필드를 저장해준다.
+         donate_priority();         // 현재 스레드의 우선순위 기부 -> 우선순위 역전 방지
+         list_insert_ordered(&lock->holder->list_donation, &p1->donation_elem,cmp_priority, NULL); // holder의 list_donation에 현재 스레드 정보(elem)를 우선순위 높은순으로 저장
+      }
    }
    sema_down (&lock->semaphore);
    lock->holder = thread_current ();
@@ -285,10 +287,13 @@ void
 lock_release (struct lock *lock) {
    ASSERT (lock != NULL);
    ASSERT (lock_held_by_current_thread (lock));
-   /* priority-donation 관련 */
-   remove_with_lock(lock); // list_donation에서 스레드(elem) 제거
-   refresh_priority();    //-> 빌렸던 내 원래의 우선순의를 원복한다.
 
+   if (!thread_mlfqs) {
+      /* priority-donation 관련 */
+      remove_with_lock(lock); // list_donation에서 스레드(elem) 제거
+      refresh_priority();    //-> 빌렸던 내 원래의 우선순의를 원복한다.
+   }
+   
    lock->holder = NULL;
    sema_up (&lock->semaphore);
 }
