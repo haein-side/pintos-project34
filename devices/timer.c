@@ -129,8 +129,7 @@ timer_interrupt (struct intr_frame *args UNUSED) {
 
 	/* P1_advanced_scheduler */
 	if (thread_mlfqs) {
-		struct thread *cur = thread_current();
-		cur->recent_cpu++;
+		mlfqs_increment();
 		if (ticks % 4 == 0) {
 			mlfqs_priority(thread_current());
 			if (ticks % TIMER_FREQ == 0) {
@@ -139,8 +138,8 @@ timer_interrupt (struct intr_frame *args UNUSED) {
 			}
 		}
 	}
-	
-	/* P1_alarm */ 
+
+	/* P1_alarm */
 	// next tict to awake값이 흐른 tick보다 작거나 같아지면 thread awake 함수를 호출한다.
 	if (get_next_tick_to_awake() <= ticks)
 		thread_awake(ticks);
