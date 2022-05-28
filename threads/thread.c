@@ -201,7 +201,6 @@ thread_start (void) {
 	/* Create the idle thread. */
 	struct semaphore idle_started;
 	sema_init (&idle_started, 0);
-
 	// idle 스레드를 만들고 맨 처음 ready queue에 들어간다.
 	// semaphore를 1로 up 시켜 공유 자원의 접근을 가능하게 한 다음 바로 block 된다.
 	thread_create ("idle", PRI_MIN, idle, &idle_started);
@@ -413,7 +412,6 @@ thread_yield (void) {
 
 	// 외부 인터럽트를 수행중이라면 종료. 외부 인터럽트는 인터럽트 당하면 안된다.
 	ASSERT (!intr_context ());
-
 	old_level = intr_disable ();	// timer인터럽트나 i/o 인터럽트같은 것들를 disable한다.
 	// 만약 현재 스레드가 Idle 스레드가 아니라면 ready queue에 다시 담는다.
 	if (curr != idle_thread)

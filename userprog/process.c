@@ -38,11 +38,11 @@ process_init (void) {
  * before process_create_initd() returns. Returns the initd's
  * thread id, or TID_ERROR if the thread cannot be created.
  * Notice that THIS SHOULD BE CALLED ONCE. */
+// ! 새 프로그램을 실행시킬 새 커널 스레드를 만든다.
 tid_t
 process_create_initd (const char *file_name) {
 	char *fn_copy;
 	tid_t tid;
-
 	/* Make a copy of FILE_NAME.
 	 * Otherwise there's a race between the caller and load(). */
 	fn_copy = palloc_get_page (0);
@@ -50,8 +50,18 @@ process_create_initd (const char *file_name) {
 		return TID_ERROR;
 	strlcpy (fn_copy, file_name, PGSIZE);
 
+	// todo: file_name 문자열을 파싱,  첫 번째 토큰을 thread_create() 함수에 스레드 이름으로 전달, strtok_r 함수 사용(char *save_ptr 선언 후) 스레드 이름을 전달하는 것은 스레드 생성 함수에서 이름을 전달하는 것과 동일하다.
+
+	// ! --- add ---
+	char *save_ptr;
+	strtok_r (file_name, " ", &save_ptr);
+
+	// ? save_ptr은 strtok_r이 동일 문자 (fn_copy)를 계속 스캔하기 위해 필요한 저장된 정보를 가르킴
+	// ? char *strtok_r(char *string, const char *seps, char **lasts);
+	// ! --- end ---
+
 	/* Create a new thread to execute FILE_NAME. */
-	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy);
+	tid = thread_create (file_name, PRI_DEFAULT, initd, fn_copy); // file_name, fn_copy 정확히 정리하기!! , fn_copy자리에 들어가는 값이 손상받으면 인자를 못받아온다
 	if (tid == TID_ERROR)
 		palloc_free_page (fn_copy);
 	return tid;
@@ -64,11 +74,53 @@ initd (void *f_name) {
 	supplemental_page_table_init (&thread_current ()->spt);
 #endif
 
-	process_init ();
+	process_init (); // 프로세스 초기화
 
 	if (process_exec (f_name) < 0)
 		PANIC("Fail to launch initd\n");
 	NOT_REACHED ();
+}
+
+
+// TODO: 유저 스택에 파싱된 토큰을 저장하는 함수 구현
+/*
+ * 유저 스택에 프로그램 이름과 인자들을 저장하는 함수
+ * parse: 프로그램 이름과 인자가 저장되어 있는 메모리 공간,
+ * count: 인자의 개수
+ * rsp: 스택 포인터를 가리키는 주소
+*/
+static void argument_stack(struct intr_frame *if_, int argv_cnt, char **argv_list) {
+	int i;
+	char *argu_addr[128];
+	int argc_len;
+
+	for (i = argv_cnt-1; i >= 0; i--){
+		argc_len = strlen(argv_list[i]);
+		if_->rsp = if_->rsp - (argc_len+1);
+		memcpy(if_->rsp, argv_list[i], (argc_len+1));
+		argu_addr[i] = if_->rsp;
+	}
+
+	while (if_->rsp%8 != 0){
+		if_->rsp--;
+		memset(if_->rsp, 0, sizeof(uint8_t));
+	}
+
+	for (i = argv_cnt; i>=0; i--){
+		if_->rsp = if_->rsp - 8;
+		if (i == argv_cnt){
+			memset(if_->rsp, 0, sizeof(char **)); // 왜 넣어줘야하지? 이유 알아보기
+		}else{
+			memcpy(if_->rsp, &argu_addr[i] , sizeof(char **));
+		}
+	}
+
+	if_->rsp = if_->rsp - 8;
+	memset(if_->rsp, 0, sizeof(void *));
+
+	if_->R.rdi = argv_cnt;		//
+	if_->R.rsi = if_->rsp + 8;	// 다시 위로 올라옴 리턴 주소 바로 위로 argv
+
 }
 
 /* Clones the current process as `name`. Returns the new process's thread id, or
@@ -176,13 +228,41 @@ process_exec (void *f_name) {
 	/* We first kill the current context */
 	process_cleanup ();
 
+	/* argument parsing */
+	char *argv[30];
+	int argc = 0;
+
+	char *token, *save_ptr;
+	token = strtok_r(file_name, " ", &save_ptr);
+	while (token != NULL)
+	{
+		/* 공백 기준으로 명령어 나누어 리스트로 조합 */
+		argv[argc] = token;
+		token = strtok_r(NULL, " ", &save_ptr);
+		argc++;
+	}
+
 	/* And then load the binary */
 	success = load (file_name, &_if);
 
 	/* If load failed, quit. */
-	palloc_free_page (file_name);
 	if (!success)
+	{
+		palloc_free_page(file_name);
 		return -1;
+	}
+
+	// Project 2-1. Pass args - load arguments onto the user stack
+	// void **rspp = &_if.rsp;
+
+	argument_stack(&_if, argc, argv);
+
+	// 필요 없음
+	// _if.R.rdi = argc;
+	// _if.R.rsi = (uint64_t)*rspp + sizeof(void *);
+
+	// hex_dump(_if.rsp, _if.rsp, USER_STACK - (uint64_t)*rspp, true);
+	hex_dump(_if.rsp, _if.rsp, USER_STACK - _if.rsp, true);
 
 	/* Start switched process. */
 	do_iret (&_if);
@@ -204,6 +284,11 @@ process_wait (tid_t child_tid UNUSED) {
 	/* XXX: Hint) The pintos exit if process_wait (initd), we recommend you
 	 * XXX:       to add infinite loop here before
 	 * XXX:       implementing the process_wait. */
+
+	// TODO: 무한루프 추가
+	while (1) {
+	}
+
 	return -1;
 }
 
