@@ -64,7 +64,7 @@ bool thread_mlfqs;	/* 1: mlfqs, 0: rr*/
 #define LOAD_AVG_DEFAULT 0
 int load_avg;
 
-int64_t	next_tick_to_awake = INT64_MAX;
+static int64_t	next_tick_to_awake;
 
 
 static void kernel_thread (thread_func *, void *aux);
@@ -125,7 +125,6 @@ thread_init (void) {
 	list_init (&ready_list);
 	list_init (&destruction_req);
 	list_init (&sleep_list);	// sleep 스레드들을 연결해놓은 리스트를 초기화 한다.
-
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
 	init_thread (initial_thread, "main", PRI_DEFAULT);

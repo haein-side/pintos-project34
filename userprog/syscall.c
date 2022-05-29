@@ -7,10 +7,19 @@
 #include "userprog/gdt.h"
 #include "threads/flags.h"
 #include "intrinsic.h"
+#include "threads/init.h"
+#include "filesys/filesys.h"
+#include "threads/synch.h"
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
+void check_address (void *addr);
+void halt(void);
+void exit (int status);
+bool create (const char *file, unsigned initial_size);
+bool remove (const char *file);
 
+struct lock *lock;
 /* System call.
  *
  * Previously system call services was handled by the interrupt handler
@@ -41,6 +50,76 @@ syscall_init (void) {
 void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
+	check_address(f->rsp);
+	struct thread *p1 = thread_current();
+	switch (f->R.rax) {
+		case SYS_HALT :
+			halt();
+			break;                   /* Halt the operating system. */
+		case SYS_EXIT :
+			exit(f->R.rdi);
+			break;                   /* Terminate this process. */
+		case SYS_FORK :
+			break;                   /* Clone current process. */
+		case SYS_EXEC :
+			break;                   /* Switch current process. */
+		case SYS_WAIT :
+			break;                   /* Wait for a child process to die. */
+		case SYS_CREATE :
+			printf ("system call success\n");
+			f->R.rax = create(f->R.rdi, f->R.rsi);
+			break;                 /* Create a file. */
+		case SYS_REMOVE :
+			f->R.rax = remove(f->R.rdi);
+			break;                 /* Delete a file. */
+		case SYS_OPEN :
+			break;                   /* Open a file. */
+		case SYS_FILESIZE :
+			break;               /* Obtain a file's size. */
+		case SYS_READ :
+			break;                   /* Read from a file. */
+		case SYS_WRITE :
+			break;                  /* Write to a file. */
+		case SYS_SEEK :
+			break;                   /* Change position in a file. */
+		case SYS_TELL :
+			break;                   /* Report current position in a file. */
+		case SYS_CLOSE :
+			break;                  /* Close a file. */
+		default :
+			thread_exit ();			// 영천이의 생각노트 추가예정
+	}
 	printf ("system call!\n");
-	thread_exit ();
 }
+
+void check_address (void *addr){
+	struct thread *p1 = thread_current();
+	// 커널 영역을 참조하고, 주소가 유효하지 않고, 페이지퐅트가 뜨면 종료한다.
+	if(!is_user_vaddr(addr) || addr==NULL || pml4_get_page(p1->pml4, addr)==NULL){
+		exit(-1);
+	}
+}
+
+void halt (void){
+	power_off();
+}
+
+void exit (int status){
+	struct thread *p1 = thread_current();
+	printf("%s : exit(%d)\n", p1->name, status);
+	thread_exit();
+}
+
+bool create (const char *file, unsigned initial_size){
+	check_address(file);
+	return filesys_create(file, initial_size);
+}
+
+bool remove (const char *file){
+	check_address(file);
+	return filesys_remove(file);
+}
+
+// int write (int fd, void *buffer unsigned size){
+// 	lock_acquire(lock);
+// }
