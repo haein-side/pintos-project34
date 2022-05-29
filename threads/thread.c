@@ -31,8 +31,6 @@ static struct list ready_list;
 
 /* sleep 상태의 스레드들을 저장하기 위한 리스트 */
 static struct list sleep_list;
-static struct list all_list;
-static int64_t next_tick_to_awake;	// sleep list에서 맨 처음으로 awake할 스레드의 tick의 값
 
 /* Idle thread. */
 static struct thread *idle_thread;
@@ -65,6 +63,8 @@ bool thread_mlfqs;	/* 1: mlfqs, 0: rr*/
 #define RECENT_CPU_DEFAULT 0
 #define LOAD_AVG_DEFAULT 0
 int load_avg;
+
+int64_t	next_tick_to_awake = INT64_MAX;
 
 
 static void kernel_thread (thread_func *, void *aux);
@@ -125,8 +125,6 @@ thread_init (void) {
 	list_init (&ready_list);
 	list_init (&destruction_req);
 	list_init (&sleep_list);	// sleep 스레드들을 연결해놓은 리스트를 초기화 한다.
-	list_init (&all_list);
-	next_tick_to_awake = INT64_MAX;
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
@@ -546,9 +544,6 @@ init_thread (struct thread *t, const char *name, int priority) {
 
 	t->nice = NICE_DEFAULT;
 	t->recent_cpu = RECENT_CPU_DEFAULT;
-	if(t != idle_thread) {
-		list_push_back(&all_list, &t->all_elem);
-	}
 }
 
 /* Chooses and returns the next thread to be scheduled.  Should
@@ -707,7 +702,6 @@ schedule (void) {
 		   schedule(). */
 		if (curr && curr->status == THREAD_DYING && curr != initial_thread) {
 			ASSERT (curr != next);
-			list_remove(&curr->all_elem);
 			list_push_back (&destruction_req, &curr->elem);
 		}
 
@@ -770,10 +764,15 @@ void mlfqs_increment(void)
 void mlfqs_recalc(void)
 {
 	struct list_elem *e;
-	for(e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e)){
-		mlfqs_recent_cpu(list_entry(e, struct thread, all_elem));
-		mlfqs_priority(list_entry(e, struct thread, all_elem));
+	struct list_elem *f;
+	for(e = list_begin(&ready_list); e != list_end(&ready_list); e = list_next(e)){
+		mlfqs_recent_cpu(list_entry(e, struct thread, elem));
+		mlfqs_priority(list_entry(e, struct thread, elem));
 	}
-	// mlfqs_recent_cpu(thread_current());
-	// mlfqs_priority(thread_current());
+	for(f = list_begin(&sleep_list); f != list_end(&sleep_list); f = list_next(f)){
+		mlfqs_recent_cpu(list_entry(f, struct thread, elem));
+		mlfqs_priority(list_entry(f, struct thread, elem));
+	}
+	mlfqs_recent_cpu(thread_current());
+	mlfqs_priority(thread_current());
 }
