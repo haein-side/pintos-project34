@@ -28,7 +28,7 @@ static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
 
-void argument_stack(char **argv, int argc, void **rspp);
+static void argument_stack(struct intr_frame *if_, int argv_cnt, char **argv_list);
 
 /* General process initializer for initd and other process. */
 static void
@@ -310,13 +310,7 @@ process_exec (void *f_name) {
 		return -1;
 	}
 
-	// Project 2-1. Pass args - load arguments onto the user stack
-	void **rspp = &_if.rsp;
-
-	argument_stack(argv, argc, rspp);
-
-	_if.R.rdi = argc;
-	_if.R.rsi = (uint64_t)*rspp + sizeof(void *);
+	argument_stack(&_if, argc, argv);
 
 	// hex_dump(_if.rsp, _if.rsp, USER_STACK - (uint64_t)*rspp, true);
 
@@ -325,44 +319,38 @@ process_exec (void *f_name) {
 	NOT_REACHED ();
 }
 
-void argument_stack(char **argv, int argc, void **rspp)
-{
-	// 1. Save argument strings (character by character)
-	for (int i = argc - 1; i >= 0; i--)
-	{
-		int N = strlen(argv[i]);
-		for (int j = N; j >= 0; j--)
-		{
-			char individual_character = argv[i][j];
-			(*rspp)--;
-			**(char **)rspp = individual_character; // 1 byte
+static void argument_stack(struct intr_frame *if_, int argv_cnt, char **argv_list) {
+	int i;
+	char *argu_addr[128];
+	int argc_len;
+
+	for (i = argv_cnt-1; i >= 0; i--){
+		argc_len = strlen(argv_list[i]);
+		if_->rsp = if_->rsp - (argc_len+1);
+		memcpy(if_->rsp, argv_list[i], (argc_len+1));
+		argu_addr[i] = if_->rsp;
+	}
+
+	while (if_->rsp%8 != 0){
+		if_->rsp--;
+		memset(if_->rsp, 0, sizeof(uint8_t));
+	}
+
+	for (i = argv_cnt; i>=0; i--){
+		if_->rsp = if_->rsp - 8;
+		if (i == argv_cnt){
+			memset(if_->rsp, 0, sizeof(char **)); // 왜 넣어줘야하지? 이유 알아보기
+		}else{
+			memcpy(if_->rsp, &argu_addr[i] , sizeof(char **));
 		}
-		argv[i] = *(char **)rspp; // push this address too
 	}
 
-	// 2. Word-align padding
-	int pad = (int)*rspp % 8;
-	for (int k = 0; k < pad; k++)
-	{
-		(*rspp)--;
-		**(uint8_t **)rspp = (uint8_t)0; // 1 byte
-	}
+	if_->rsp = if_->rsp - 8;
+	memset(if_->rsp, 0, sizeof(void *));
 
-	// 3. Pointers to the argument strings
-	size_t PTR_SIZE = sizeof(char *);
+	if_->R.rdi = argv_cnt;		//
+	if_->R.rsi = if_->rsp + 8;	// 다시 위로 올라옴 리턴 주소 바로 위로 argv
 
-	(*rspp) -= PTR_SIZE;
-	**(char ***)rspp = (char *)0;
-
-	for (int i = argc - 1; i >= 0; i--)
-	{
-		(*rspp) -= PTR_SIZE;
-		**(char ***)rspp = argv[i];
-	}
-
-	// 4. Return address
-	(*rspp) -= PTR_SIZE;
-	**(void ***)rspp = (void *)0;
 }
 
 
