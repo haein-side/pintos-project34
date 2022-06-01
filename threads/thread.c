@@ -64,7 +64,7 @@ bool thread_mlfqs;	/* 1: mlfqs, 0: rr*/
 #define LOAD_AVG_DEFAULT 0
 int load_avg;
 
-int64_t	next_tick_to_awake = INT64_MAX;
+static int64_t	next_tick_to_awake;
 
 
 static void kernel_thread (thread_func *, void *aux);
@@ -125,7 +125,6 @@ thread_init (void) {
 	list_init (&ready_list);
 	list_init (&destruction_req);
 	list_init (&sleep_list);	// sleep 스레드들을 연결해놓은 리스트를 초기화 한다.
-
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread ();
 	init_thread (initial_thread, "main", PRI_DEFAULT);
@@ -274,6 +273,21 @@ thread_create (const char *name, int priority,
 	init_thread (t, name, priority);
 	tid = t->tid = allocate_tid ();
 
+	/* 현재 스레드의 자식 리스트에 새로 생성한 스레드 추가 */
+    struct thread *curr = thread_current();
+    list_push_back(&curr->child_list,&t->child_elem);
+
+    /* 파일 디스크립터 초기화 */
+    t->fdTable = palloc_get_multiple(PAL_ZERO,FDT_PAGES);
+    if(t->fdTable == NULL)
+        return TID_ERROR;
+    t->fdIdx = 2;
+    t->fdTable[0] = 1;
+    t->fdTable[1] = 2;
+
+    t->stdin_count = 1;
+    t->stdout_count = 1;
+
 	/* Call the kernel_thread if it scheduled.
 	 * Note) rdi is 1st argument, and rsi is 2nd argument. */
 	t->tf.rip = (uintptr_t) kernel_thread;
@@ -284,6 +298,7 @@ thread_create (const char *name, int priority,
 	t->tf.ss = SEL_KDSEG;
 	t->tf.cs = SEL_KCSEG;
 	t->tf.eflags = FLAG_IF;
+
 
 	/* Add to run queue. */
 	thread_unblock (t);
@@ -541,6 +556,11 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->init_priority = priority;
 	t->wait_on_lock = NULL;
 	list_init(&t->list_donation);
+	list_init(&t->child_list);
+
+	sema_init(&t->wait_sema,0);
+    sema_init(&t->fork_sema,0);
+    sema_init(&t->free_sema,0);
 
 	t->nice = NICE_DEFAULT;
 	t->recent_cpu = RECENT_CPU_DEFAULT;
