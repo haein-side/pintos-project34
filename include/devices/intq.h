@@ -4,18 +4,12 @@
 #include "threads/interrupt.h"
 #include "threads/synch.h"
 
-/* An "interrupt queue", a circular buffer shared between
-   kernel threads and external interrupt handlers.
-
-   Interrupt queue functions can be called from kernel threads or
-   from external interrupt handlers.  Except for intq_init(),
-   interrupts must be off in either case.
-
-   The interrupt queue has the structure of a "monitor".  Locks
-   and condition variables from threads/synch.h cannot be used in
-   this case, as they normally would, because they can only
-   protect kernel threads from one another, not from interrupt
-   handlers. */
+/* 인터럽트 큐는 커널 스레드와 외부 인터럽트 핸들러 간에 공유되는 circular 버퍼이다.
+  인터럽트 큐 함수는 커널 스레드 또는 외부 인터럽트 핸들러에서 호출할 수 있다.
+   intq_init()를 제외하고, 인터럽트는 두 경우 모두 해제되어 있어야 합니다.
+   인터럽트 큐는 "monitor"의 구조이다.
+   threads/synch.h의 잠금 및 조건 변수는 이 경우에 사용할 수 없는데,
+   인터럽트 핸들러로부터가 아니라, 커널 스레드로부터만 보호할 수 있기 때문 */
 
 /* Queue buffer size, in bytes. */
 #define INTQ_BUFSIZE 64
