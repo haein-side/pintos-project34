@@ -282,21 +282,7 @@ bitmap_scan (const struct bitmap *b, size_t start, size_t cnt, bool value) {
 	return BITMAP_ERROR;
 }
 
-/* Finds the first group of CNT consecutive bits in B at or after
-   START that are all set to VALUE, flips them all to !VALUE,
-   and returns the index of the first bit in the group.
-   If there is no such group, returns BITMAP_ERROR.
-   If CNT is zero, returns 0.
-   Bits are set atomically, but testing bits is not atomic with
-   setting them. */
-size_t
-bitmap_scan_and_flip (struct bitmap *b, size_t start, size_t cnt, bool value) {
-	size_t idx = bitmap_scan (b, start, cnt, value);
-	if (idx != BITMAP_ERROR)
-		bitmap_set_multiple (b, idx, cnt, !value);
-	return idx;
-}
-
+c
 /* File input and output. */
 
 #ifdef FILESYS
