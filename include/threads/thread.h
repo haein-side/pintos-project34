@@ -106,7 +106,7 @@ struct thread
    struct list list_donation;	   /* 해당 스레드가 우선순위는 낮으나 lock을 보유하고 있을 때 사용됨 */
    struct list_elem donation_elem;   /* 낮은 우선순위를 가진 스레드의 donations가 가리키는 list_elem  */
    /* Shared between thread.c and synch.c. */
-   struct list_elem elem; /* List element. */
+   struct list_elem elem; /* List element. -> list_entry()로 thread에 접근 가능 */
 
    int nice;		/* 우선순위에 영향을 주는 값 */
    int recent_cpu; /* 최근에 얼마나 많은 CPU time을 사용했는가를 표현 */

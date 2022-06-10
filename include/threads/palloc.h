@@ -6,9 +6,9 @@
 
 /* How to allocate pages. */
 enum palloc_flags {
-	PAL_ASSERT = 001,           /* 실행 권한 */
-	PAL_ZERO = 002,             /* 쓰기 권한 */
-	PAL_USER = 004              /* 읽기 권한 */
+	PAL_ASSERT = 001,           
+	PAL_ZERO = 002,             
+	PAL_USER = 004              
 };
 
 /* Maximum number of pages to put in user pool. */

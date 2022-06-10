@@ -8,7 +8,7 @@ enum vm_type {
 	VM_UNINIT = 0,
 	/* page not related to the file, aka anonymous page */
 	VM_ANON = 1,
-	/* page that realated to the file */
+	/* page that related to the file */
 	VM_FILE = 2,
 	/* page that hold the page cache, for project 4 */
 	VM_PAGE_CACHE = 3,
@@ -39,7 +39,10 @@ struct thread;
 /* The representation of "page".
  * This is kind of "parent class", which has four "child class"es, which are
  * uninit_page, file_page, anon_page, and page cache (project4).
- * DO NOT REMOVE/MODIFY PREDEFINED MEMBER OF THIS STRUCTURE. */
+ * DO NOT REMOVE/MODIFY PREDEFINED MEMBER OF THIS STRUCTURE.
+ * 가상 메모리의 페이지를 나타내는 구조체
+ * 페이지에 대해 알아야 하는 모든 필요한 데이터 저장
+ *  */
 struct page {
 	const struct page_operations *operations;
 	void *va;              /* Address in terms of user space */
@@ -48,7 +51,10 @@ struct page {
 	/* Your implementation */
 
 	/* Per-type data are binded into the union.
-	 * Each function automatically detects the current union */
+	 * Each function automatically detects the current union
+	 * 메모리 영역에 저장하는 다양한 유형의 데이터
+	 * 한 번에 하나의 값만 가짐
+	 */
 	union {
 		struct uninit_page uninit;
 		struct anon_page anon;
@@ -60,15 +66,19 @@ struct page {
 };
 
 /* The representation of "frame" */
+/* 물리 메모리 나타냄 */
 struct frame {
-	void *kva;
-	struct page *page;
+	void *kva; 			// kernel virtual address
+	struct page *page;	// a page structure
 };
 
 /* The function table for page operations.
  * This is one way of implementing "interface" in C.
  * Put the table of "method" into the struct's member, and
- * call it whenever you needed. */
+ * call it whenever you needed.
+ * 페이지 유형에 따라 적절한 작업 실행해줌
+ * 함수 포인터 타입 -> 메모리 내에서 함수 호출 가능
+ * */
 struct page_operations {
 	bool (*swap_in) (struct page *, void *);
 	bool (*swap_out) (struct page *);
