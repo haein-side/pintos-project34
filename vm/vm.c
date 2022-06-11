@@ -114,11 +114,12 @@ static struct frame *
 vm_get_frame (void) {
 	struct frame *frame = malloc(sizeof (struct frame));
 	/* TODO: Fill this function. */
-	
+	ASSERT (frame != NULL);
+
 	char *kva = palloc_get_page(PAL_USER);
 
-	if ((frame == NULL) || (kva == NULL)) {
-		return NULL;
+	if (kva == NULL) {		/***I'm Your Father***/
+		PANIC("Swap out should be implemented!!!\n");
 	}
 
 	frame->kva = kva;
