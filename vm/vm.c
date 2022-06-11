@@ -112,11 +112,11 @@ vm_evict_frame (void) {
  * space.*/
 static struct frame *
 vm_get_frame (void) {
-	struct frame *frame = malloc(sizeof (struct frame));
-	/* TODO: Fill this function. */
+	struct frame *frame = calloc(1, sizeof (struct frame));
 	ASSERT (frame != NULL);
 
-	char *kva = palloc_get_page(PAL_USER);
+	/* TODO: Fill this function. */
+	uint64_t *kva = palloc_get_page(PAL_USER);
 
 	if (kva == NULL) {		/***I'm Your Father***/
 		PANIC("Swap out should be implemented!!!\n");
@@ -124,7 +124,6 @@ vm_get_frame (void) {
 
 	frame->kva = kva;
 
-	ASSERT (frame != NULL);
 	ASSERT (frame->page == NULL);
 	return frame;
 }
