@@ -69,16 +69,7 @@ err:
 /* VA와 상응하는 struct page를 supplemental page table에서 찾아준다. 실패 시, NULL을 리턴한다. */
 struct page *
 spt_find_page (struct supplemental_page_table *spt, void *va) {
-	// struct page *page = NULL; // ?
-	struct hash *h = spt->h;
-
-	if (page_lookup(h, va) != NULL){ // va와 상응하는 struct page를 spt에서 찾아줘야 함
-		struct page *page = hash_entry(va, struct page, hash_elem);
-		return page;
-	} else {
-		return NULL;
-	}
-
+	return page_lookup(spt->h, va);
 }
 
 /* Insert PAGE into spt with validation. */
@@ -234,6 +225,6 @@ page_lookup (struct hash *h, const void *va) {
 
   p.va = pg_round_down(va); // offset을 0으로 만들고 페이지 주소를 받아옴
 
-  e = hash_find (h, *p.hash_elem);
+  e = hash_find (h, &p.hash_elem);
   return e != NULL ? hash_entry (e, struct page, hash_elem) : NULL;
 }
