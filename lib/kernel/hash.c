@@ -392,3 +392,14 @@ remove_elem (struct hash *h, struct hash_elem *e) {
 	list_remove (&e->list_elem);
 }
 
+/* Returns the page containing the given virtual address, or a null pointer if no such page exists. */
+struct page *
+page_lookup (struct hash *h, const void *va) {
+  struct page p;
+  struct hash_elem *e;
+
+  p.va = pg_round_down(va); // offset을 0으로 만들고 페이지 주소를 받아옴
+
+  e = hash_find (h, *p.hash_elem);
+  return e != NULL ? hash_entry (e, struct page, hash_elem) : NULL;
+}

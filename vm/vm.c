@@ -4,6 +4,7 @@
 #include "vm/vm.h"
 #include "vm/inspect.h"
 #include "threads/mmu.h"
+#include "threads/vaddr.h"
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -61,13 +62,21 @@ err:
 	return false;
 }
 
+/*** haein ***/
 /* Find VA from spt and return page. On error, return NULL. */
+/* VA와 상응하는 struct page를 supplemental page table에서 찾아준다. 실패 시, NULL을 리턴한다. */
 struct page *
-spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
-	struct page *page = NULL;
-	/* TODO: Fill this function. */
+spt_find_page (struct supplemental_page_table *spt, void *va) {
+	// struct page *page = NULL; // ?
+	struct hash *h = spt->h;
 
-	return page;
+	if (page_lookup(h, va) != NULL){ // va와 상응하는 struct page를 spt에서 찾아줘야 함
+		struct page *page = hash_entry(va, struct page, hash_elem);
+		return page;
+	} else {
+		return NULL;
+	}
+
 }
 
 /* Insert PAGE into spt with validation. */
