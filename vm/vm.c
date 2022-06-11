@@ -3,6 +3,7 @@
 #include "threads/malloc.h"
 #include "vm/vm.h"
 #include "vm/inspect.h"
+#include "threads/mmu.h"
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -174,19 +175,25 @@ vm_claim_page (void *va UNUSED) {
 		return false;
 }
 
+/*** haein ***/
 /* Claim the PAGE and set up the mmu. */
 /* 페이지 값을 넘겨 받고, 그 페이지와 get frame에서 물리 메모리 공간을 페이지와 연결 시켜준다. */
 static bool
-vm_do_claim_page (struct page *page) {
+vm_do_claim_page (struct page *page) { // 이미 만들어진 page => 매핑
 	struct frame *frame = vm_get_frame ();
+	struct thread *t = thread_current();
 
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
+	if (pml4_get_page (t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, frame->kva, true)) { /*** 고민 필요!!! - true? ***/
+		return swap_in (page, frame->kva); // page fault가 일어났을 때 swap in
+	} else {
+		return false;
+	}
 
-	return swap_in (page, frame->kva);
 }
 
 /* Initialize new supplemental page table */
