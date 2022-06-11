@@ -157,6 +157,7 @@ vm_claim_page (void *va UNUSED) {
 	return vm_do_claim_page (page);
 }
 
+/***haein***/
 /* Claim the PAGE and set up the mmu. */
 static bool
 vm_do_claim_page (struct page *page) { // 이미 만들어진 page => 매핑
