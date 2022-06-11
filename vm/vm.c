@@ -174,8 +174,9 @@ vm_claim_page (void *va) {
 	struct page *page = spt_find_page(thread_current()->spt, va);
 	/* TODO: Fill this function */
 	
-	if (page != NULL)					
+	if (page != NULL) {
 		return vm_do_claim_page (page);
+	}
 	return false;
 }
 
