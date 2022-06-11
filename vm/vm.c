@@ -158,7 +158,7 @@ vm_claim_page (void *va UNUSED) {
 	return vm_do_claim_page (page);
 }
 
-/***haein***/
+/*** haein ***/
 /* Claim the PAGE and set up the mmu. */
 static bool
 vm_do_claim_page (struct page *page) { // 이미 만들어진 page => 매핑
@@ -170,7 +170,7 @@ vm_do_claim_page (struct page *page) { // 이미 만들어진 page => 매핑
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
-	if (pml4_set_page(t->pml4, page->va, frame->kva, true)) {
+	if (pml4_get_page (t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, frame->kva, true)) { /*** 고민 필요!!! - true? ***/
 		return swap_in (page, frame->kva); // page fault가 일어났을 때 swap in
 	} else {
 		return false;
