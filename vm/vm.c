@@ -8,6 +8,10 @@
 
 struct page *page_lookup (struct hash *h, const void *va); /*** haein ***/
 
+/*** Dongdongbro ***/
+unsigned page_hash (const struct hash_elem *h_elem, void *aux UNUSED);
+bool page_less (const struct hash_elem *h_elem1, const struct hash_elem *h_elem2, void *aux UNUSED);
+
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 void
@@ -72,12 +76,16 @@ spt_find_page (struct supplemental_page_table *spt, void *va) {
 	return page_lookup(spt->h, va);
 }
 
+/*** GrilledSalmon ***/
 /* Insert PAGE into spt with validation. */
 bool
-spt_insert_page (struct supplemental_page_table *spt UNUSED,
-		struct page *page UNUSED) {
+spt_insert_page (struct supplemental_page_table *spt, struct page *page) {
 	int succ = false;
 	/* TODO: Fill this function. */
+
+	if (hash_insert(spt->h, page->hash_elem) == NULL) {
+		succ = true;
+	}
 
 	return succ;
 }
@@ -168,13 +176,14 @@ vm_dealloc_page (struct page *page) {
 /* Claim the page that allocate on VA. */
 // va를 할당하기 위해 페이지를 선언한다.
 bool
-vm_claim_page (void *va UNUSED) {
-	struct page *page = spt_find_page(thread_current()->spt, va);	/*** 수정 필요!!! ***/
+vm_claim_page (void *va) {
+	struct page *page = spt_find_page(thread_current()->spt, va);
 	/* TODO: Fill this function */
-	if(hash_entry(hash_find()))					/*** 수정 필요!!! ***/
+	
+	if (page != NULL) {
 		return vm_do_claim_page (page);
-	else
-		return false;
+	}
+	return false;
 }
 
 /*** haein ***/
@@ -198,9 +207,22 @@ vm_do_claim_page (struct page *page) { // 이미 만들어진 page => 매핑
 
 }
 
+/*** Dongdongbro ***/
 /* Initialize new supplemental page table */
 void
-supplemental_page_table_init (struct supplemental_page_table *spt UNUSED) {
+supplemental_page_table_init (struct supplemental_page_table *spt) {
+	/*** 고민 필요!!!(init이 두번 불릴 경우를 고려) ***/
+	/*
+	if(spt->h != NULL){
+		free(spt->h);
+	}
+	*/
+
+	spt->h = malloc(sizeof(struct hash));
+
+	if (!hash_init(spt->h, page_hash, page_less, NULL)){
+		PANIC("There are no memory in Kernel pool(malloc fail)");
+	}
 }
 
 /* Copy supplemental page table from src to dst */
@@ -216,6 +238,7 @@ supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	 * TODO: writeback all the modified contents to the storage. */
 }
 
+
 /*** haein ***/
 /* Returns the page containing the given virtual address, or a null pointer if no such page exists. */
 struct page *
@@ -227,4 +250,23 @@ page_lookup (struct hash *h, const void *va) {
 
   e = hash_find (h, &p.hash_elem);
   return e != NULL ? hash_entry (e, struct page, hash_elem) : NULL;
+}
+
+/*** Dongdongbro ***/
+/* Returns a hash value for page p. */
+unsigned
+page_hash (const struct hash_elem *h_elem, void *aux UNUSED) {
+  const struct page *p = hash_entry (h_elem, struct page, hash_elem);
+  return hash_bytes (&p->va, sizeof p->va);
+}
+
+/*** Dongdongbro ***/
+/* Returns true if page a precedes page b. */
+bool
+page_less (const struct hash_elem *h_elem1,
+           const struct hash_elem *h_elem2, void *aux UNUSED) {
+  const struct page *a = hash_entry (h_elem1, struct page, hash_elem);
+  const struct page *b = hash_entry (h_elem2, struct page, hash_elem);
+
+  return a->va < b->va;
 }
