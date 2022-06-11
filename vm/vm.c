@@ -6,6 +6,8 @@
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
 
+struct page *page_lookup (struct hash *h, const void *va); /*** haein ***/
+
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 void
@@ -221,4 +223,17 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+}
+
+/*** haein ***/
+/* Returns the page containing the given virtual address, or a null pointer if no such page exists. */
+struct page *
+page_lookup (struct hash *h, const void *va) {
+  struct page p;
+  struct hash_elem *e;
+
+  p.va = pg_round_down(va); // offset을 0으로 만들고 페이지 주소를 받아옴
+
+  e = hash_find (h, *p.hash_elem);
+  return e != NULL ? hash_entry (e, struct page, hash_elem) : NULL;
 }
