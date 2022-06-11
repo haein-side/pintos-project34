@@ -4,6 +4,7 @@
 #include "vm/vm.h"
 #include "vm/inspect.h"
 #include "threads/mmu.h"
+#include "kernel/hash.h"		/*** GrilledSalmon ***/
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -70,12 +71,16 @@ spt_find_page (struct supplemental_page_table *spt UNUSED, void *va UNUSED) {
 	return page;
 }
 
+/*** GrilledSalmon ***/
 /* Insert PAGE into spt with validation. */
 bool
-spt_insert_page (struct supplemental_page_table *spt UNUSED,
-		struct page *page UNUSED) {
+spt_insert_page (struct supplemental_page_table *spt, struct page *page) {
 	int succ = false;
 	/* TODO: Fill this function. */
+
+	if (hash_insert(spt->h, page->hash_elem) == NULL) {
+		succ = true;
+	}
 
 	return succ;
 }
