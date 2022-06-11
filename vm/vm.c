@@ -159,16 +159,18 @@ vm_claim_page (void *va UNUSED) {
 
 /* Claim the PAGE and set up the mmu. */
 static bool
-vm_do_claim_page (struct page *page) {
+vm_do_claim_page (struct page *page) { // 이미 만들어진 page => 매핑
 	struct frame *frame = vm_get_frame ();
+	struct thread *t = thread_current();
 
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
+	pml4_set_page(t->pml4, page->va, frame->kva, true);
 
-	return swap_in (page, frame->kva);
+	return swap_in (page, frame->kva); // page fault가 일어났을 때 swap in
 }
 
 /* Initialize new supplemental page table */
