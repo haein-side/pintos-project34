@@ -104,16 +104,26 @@ vm_evict_frame (void) {
 	return NULL;
 }
 
+
+/*** GrilledSalmon ***/
 /* palloc() and get frame. If there is no available page, evict the page
  * and return it. This always return valid address. That is, if the user pool
  * memory is full, this function evicts the frame to get the available memory
  * space.*/
 static struct frame *
 vm_get_frame (void) {
-	struct frame *frame = NULL;
-	/* TODO: Fill this function. */
-
+	struct frame *frame = calloc(1, sizeof (struct frame));
 	ASSERT (frame != NULL);
+
+	/* TODO: Fill this function. */
+	uint64_t *kva = palloc_get_page(PAL_USER);
+
+	if (kva == NULL) {		/***I'm Your Father***/
+		PANIC("Swap out should be implemented!!!\n");
+	}
+
+	frame->kva = kva;
+
 	ASSERT (frame->page == NULL);
 	return frame;
 }
