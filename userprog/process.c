@@ -768,6 +768,11 @@ setup_stack (struct intr_frame *if_) {
  * with palloc_get_page().
  * Returns true on success, false if UPAGE is already mapped or
  * if memory allocation fails. */
+/* 유저 가상주소에서 커널 가상 주소로 맵핑을 페이지 테이블에 추가한다.
+Writable이 true이면 유저 프로세스가 페이지를 수정할 수 있다. 그렇지 않으면 읽기 전용이다.
+유저 가상주소는 이미 맵핑되어야 하지 않는다.
+커널 가상주소는 아마도 palloc_get_page()를 사용하여 사용자 풀에서 얻은 페이지여야 한다.
+성공하면 true. 유저 가상주소가 이미 매핑되어 있거나 메모리 할당에 실패하면 false를 반환한다.  */
 static bool
 install_page (void *upage, void *kpage, bool writable) {
 	struct thread *t = thread_current ();

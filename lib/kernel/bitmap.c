@@ -19,6 +19,7 @@
 typedef unsigned long elem_type;
 
 /* Number of bits in an element. */
+/* 엘리먼트의 bits의 갯수 */
 #define ELEM_BITS (sizeof (elem_type) * CHAR_BIT)
 
 /* From the outside, a bitmap is an array of bits.  From the
@@ -133,7 +134,7 @@ bitmap_set (struct bitmap *b, size_t idx, bool value) {
 	ASSERT (b != NULL);
 	ASSERT (idx < b->bit_cnt);
 	if (value)
-		bitmap_mark (b, idx);
+	bitmap_mark (b, idx);
 	else
 		bitmap_reset (b, idx);
 }
@@ -282,7 +283,21 @@ bitmap_scan (const struct bitmap *b, size_t start, size_t cnt, bool value) {
 	return BITMAP_ERROR;
 }
 
-c
+/* Finds the first group of CNT consecutive bits in B at or after
+   START that are all set to VALUE, flips them all to !VALUE,
+   and returns the index of the first bit in the group.
+   If there is no such group, returns BITMAP_ERROR.
+   If CNT is zero, returns 0.
+   Bits are set atomically, but testing bits is not atomic with
+   setting them. */
+size_t
+bitmap_scan_and_flip (struct bitmap *b, size_t start, size_t cnt, bool value) {
+	size_t idx = bitmap_scan (b, start, cnt, value);
+	if (idx != BITMAP_ERROR)
+		bitmap_set_multiple (b, idx, cnt, !value);
+	return idx;
+}
+
 /* File input and output. */
 
 #ifdef FILESYS
