@@ -73,7 +73,7 @@ err:
 /* VA와 상응하는 struct page를 supplemental page table에서 찾아준다. 실패 시, NULL을 리턴한다. */
 struct page *
 spt_find_page (struct supplemental_page_table *spt, void *va) {
-	return page_lookup(spt->h, va);
+	return page_lookup(&spt->h, va);
 }
 
 /*** GrilledSalmon ***/
@@ -83,7 +83,7 @@ spt_insert_page (struct supplemental_page_table *spt, struct page *page) {
 	int succ = false;
 	/* TODO: Fill this function. */
 
-	if (hash_insert(spt->h, page->hash_elem) == NULL) {
+	if (hash_insert(&spt->h, &page->hash_elem) == NULL) {
 		succ = true;
 	}
 
@@ -218,9 +218,8 @@ supplemental_page_table_init (struct supplemental_page_table *spt) {
 	}
 	*/
 
-	spt->h = malloc(sizeof(struct hash));
 
-	if (!hash_init(spt->h, page_hash, page_less, NULL)){
+	if (!hash_init(&spt->h, page_hash, page_less, NULL)){
 		PANIC("There are no memory in Kernel pool(malloc fail)");
 	}
 }
