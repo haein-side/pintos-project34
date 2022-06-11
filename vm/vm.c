@@ -151,13 +151,14 @@ vm_dealloc_page (struct page *page) {
 	free (page);
 }
 
+/*** Dongdongbro ***/
 /* Claim the page that allocate on VA. */
 // va를 할당하기 위해 페이지를 선언한다.
 bool
 vm_claim_page (void *va UNUSED) {
-	struct page *page = spt_find_page(thread_current()->spt, va);
+	struct page *page = spt_find_page(thread_current()->spt, va);	/*** 수정 필요!!! ***/
 	/* TODO: Fill this function */
-	if(hash_entry(hash_find()))
+	if(hash_entry(hash_find()))					/*** 수정 필요!!! ***/
 		return vm_do_claim_page (page);
 	else
 		return false;
