@@ -19,6 +19,7 @@
 typedef unsigned long elem_type;
 
 /* Number of bits in an element. */
+/* 엘리먼트의 bits의 갯수 */
 #define ELEM_BITS (sizeof (elem_type) * CHAR_BIT)
 
 /* From the outside, a bitmap is an array of bits.  From the
@@ -133,7 +134,7 @@ bitmap_set (struct bitmap *b, size_t idx, bool value) {
 	ASSERT (b != NULL);
 	ASSERT (idx < b->bit_cnt);
 	if (value)
-		bitmap_mark (b, idx);
+	bitmap_mark (b, idx);
 	else
 		bitmap_reset (b, idx);
 }
