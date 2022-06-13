@@ -13,7 +13,9 @@ enum vm_type {
 	VM_FILE = 2,
 	/* page that hold the page cache, for project 4 */
 	VM_PAGE_CACHE = 3,
-
+	
+	VM_STACK = 9,			/*** GrilledSalmon ***/
+	VM_SEG = 17,
 	/* Bit flags to store state */
 
 	/* Auxillary bit flag marker for store information. You can add more
@@ -36,6 +38,7 @@ struct page_operations;
 struct thread;
 
 #define VM_TYPE(type) ((type) & 7)
+#define VM_AUXTYPE(type) ((type) & 24)		/*** GrilledSalmon ***/
 
 /* The representation of "page".
  * This is kind of "parent class", which has four "child class"es, which are
@@ -52,6 +55,8 @@ struct page {
 	/* Your implementation */
 	/*** Dongdongbro ***/
 	struct hash_elem hash_elem;
+	bool writable;
+	
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union
 	 * 메모리 영역에 저장하는 다양한 유형의 데이터
