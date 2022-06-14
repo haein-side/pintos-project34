@@ -29,8 +29,6 @@ vm_anon_init (void) {
 /* Initialize the file mapping */
 bool
 anon_initializer (struct page *page, enum vm_type type, void *kva UNUSED) {
-	ASSERT(page != NULL);
-	
 	/* Set up the handler */
 	page->operations = &anon_ops;
 
@@ -38,8 +36,9 @@ anon_initializer (struct page *page, enum vm_type type, void *kva UNUSED) {
 
 	anon_page->aux_type = VM_AUXTYPE(type); // anon_page의 aux_type은 anon_type이므로 1을 빼줌 
 	anon_page->slot_number = -1;            // 아직 swap out된 적 없으므로 slot number -1로 줌
-
-	return anon_page != NULL;
+	
+	/*** 고민 필요!!! (bool형 리턴값 false인 경우?) ***/
+	return true;
 }
 
 /* Swap in the page by read contents from the swap disk. */
