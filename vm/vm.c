@@ -5,6 +5,10 @@
 #include "vm/inspect.h"
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
+#include "lib/kernel/hash.h"
+#include "threads/malloc.h"
+#include "userprog/process.h"
+#include <string.h>
 
 struct page *page_lookup (struct hash *h, const void *va); /*** haein ***/
 
@@ -71,7 +75,7 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 		case VM_ANON:
 			initializer = anon_initializer;
 			break;
-		
+
 		case VM_FILE:
 			initializer = file_backed_initializer;
 			break;
@@ -254,10 +258,48 @@ supplemental_page_table_init (struct supplemental_page_table *spt) {
 	}
 }
 
+/*** Dongdongbro ***/
 /* Copy supplemental page table from src to dst */
 bool
-supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
-		struct supplemental_page_table *src UNUSED) {
+supplemental_page_table_copy (struct supplemental_page_table *dst, struct supplemental_page_table *src) {
+	struct hash_iterator i;
+	hash_first (&i, &src->h);
+	while (hash_next(&i)){
+		struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
+		enum vm_type type = VM_TYPE (src_page->operations->type);
+
+		switch (type)
+		{
+		case VM_UNINIT :
+			struct seg_info *dst_seg_info = malloc(sizeof(struct seg_info));
+			memcpy(dst_seg_info, src_page->uninit.aux, sizeof(struct seg_info));
+			if(!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, lazy_load_segment, dst_seg_info)){
+				return false;
+			};
+			break;
+
+		case VM_ANON :
+			if(!vm_alloc_page(type | src_page->anon.aux_type, src_page->va, src_page->writable) || !vm_claim_page(src_page->va)){
+				return false;
+			};
+			struct page *dst_page = spt_find_page(dst, src_page->va);
+			memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
+			break;
+
+		case VM_FILE :		/*** 수정 필요!!! ***/
+			if(!vm_alloc_page(type, src_page->va, src_page->writable) || !vm_claim_page(src_page->va)){
+				return false;
+			};
+			struct page *dst_page = spt_find_page(dst, src_page->va);
+			memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
+			break;
+
+		default :
+			PANIC("Cached type");
+			break;
+		}
+	}
+	return true;
 }
 
 /* Free the resource hold by the supplemental page table */
