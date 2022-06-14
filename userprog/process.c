@@ -794,14 +794,17 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
 	struct file *file = thread_current()->running;
-	strcut seg_info *seg_load = aux;
-	file_seek(file, aux->ofs);
+	struct seg_info *seg_load = aux;
+	
+	file_seek(file, seg_load->ofs);
+	
 	if(file_read(file, page->frame->kva, seg_load->read_bytes) != (int) seg_load->read_bytes){
-		palloc_free_page(page->frame->kva);
 		return false;
 	}
+	
 	memset(page->frame->kva + seg_load->read_bytes, 0, PGSIZE - seg_load->read_bytes);
-	free(aux);
+	free(seg_load);
+	
 	return true;
 }
 
