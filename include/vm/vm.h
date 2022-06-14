@@ -93,12 +93,6 @@ struct page_operations {
 	enum vm_type type;
 };
 
-/*** Dongdongbro ***/
-struct seg_info {
-	off_t ofs;
-	uint32_t read_bytes;
-}
-
 #define swap_in(page, v) (page)->operations->swap_in ((page), v)
 #define swap_out(page) (page)->operations->swap_out (page)
 #define destroy(page) \
