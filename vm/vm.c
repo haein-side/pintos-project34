@@ -207,7 +207,7 @@ vm_dealloc_page (struct page *page) {
 // va를 할당하기 위해 페이지를 선언한다.
 bool
 vm_claim_page (void *va) {
-	struct page *page = spt_find_page(thread_current()->spt, va);
+	struct page *page = spt_find_page(&thread_current()->spt, va);
 	/* TODO: Fill this function */
 
 	if (page != NULL) {

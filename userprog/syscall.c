@@ -143,7 +143,7 @@ void check_address(const uint64_t *uaddr){
 		exit(-1);
 	}
 #else
-	if (uaddr == NULL || !(is_user_vaddr(uaddr)) || spt_find_page(cur->spt, uaddr) == NULL)
+	if (uaddr == NULL || !(is_user_vaddr(uaddr)) || spt_find_page(&cur->spt, uaddr) == NULL)
 	{
 		exit(-1);
 	}

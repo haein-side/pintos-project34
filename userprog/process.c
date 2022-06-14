@@ -871,13 +871,8 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
 	vm_alloc_page(VM_STACK, stack_bottom, true);
-	struct page *page = spt_find_page(thread_current()->spt, stack_bottom);
 	
-	if (page == NULL) {
-		return success;
-	}
-	
-	success = vm_do_claim_page(page);
+	success = vm_claim_page(stack_bottom);
 	memset(stack_bottom, 0, PGSIZE);
 
 	if_->rsp = USER_STACK;
