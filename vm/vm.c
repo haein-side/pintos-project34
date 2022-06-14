@@ -182,13 +182,15 @@ vm_handle_wp (struct page *page UNUSED) {
 
 /* Return true on success */
 bool
-vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
+vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
-	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
-	struct page *page = NULL;
+	struct supplemental_page_table *spt = &thread_current ()->spt;
+	struct page *page = spt_find_page(spt, addr);
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
-
+	if(page == NULL){
+		return false;
+	}
 	return vm_do_claim_page (page);
 }
 
@@ -207,7 +209,7 @@ bool
 vm_claim_page (void *va) {
 	struct page *page = spt_find_page(thread_current()->spt, va);
 	/* TODO: Fill this function */
-	
+
 	if (page != NULL) {
 		return vm_do_claim_page (page);
 	}

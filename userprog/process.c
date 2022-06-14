@@ -787,11 +787,25 @@ install_page (void *upage, void *kpage, bool writable) {
  * If you want to implement the function for only project 2, implement it on the
  * upper block. */
 
+/*** Dongdongbro ***/
 static bool
 lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
+	struct file *file = thread_current()->running;
+	struct seg_info *seg_load = aux;
+	
+	file_seek(file, seg_load->ofs);
+	
+	if(file_read(file, page->frame->kva, seg_load->read_bytes) != (int) seg_load->read_bytes){
+		return false;
+	}
+	
+	memset(page->frame->kva + seg_load->read_bytes, 0, PGSIZE - seg_load->read_bytes);
+	free(seg_load);
+	
+	return true;
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
@@ -808,6 +822,7 @@ lazy_load_segment (struct page *page, void *aux) {
  *
  * Return true if successful, false if a memory allocation error
  * or disk read error occurs. */
+
 /*** haein ***/
 static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
@@ -824,13 +839,16 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 		
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
+
 		struct seg_info *seg_info = malloc(sizeof(struct seg_info));
 		seg_info->ofs = now;
 		seg_info->read_bytes = page_read_bytes;
 
 		if (!vm_alloc_page_with_initializer (VM_SEG, upage,
-					writable, lazy_load_segment, seg_info))
-			return false;
+					writable, lazy_load_segment, seg_info)) {
+      free(seg_info);
+      return false;
+		}
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
@@ -842,6 +860,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 }
 
 /* Create a PAGE of stack at the USER_STACK. Return true on success. */
+/*** Dongdongbro ***/
 static bool
 setup_stack (struct intr_frame *if_) {
 	bool success = false;
@@ -851,7 +870,18 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
+	vm_alloc_page(VM_STACK, stack_bottom, true);
+	struct page *page = spt_find_page(thread_current()->spt, stack_bottom);
+	
+	if (page == NULL) {
+		return success;
+	}
+	
+	success = vm_do_claim_page(page);
+	memset(stack_bottom, 0, PGSIZE);
 
+	if_->rsp = USER_STACK;
+	
 	return success;
 }
 #endif /* VM */
