@@ -12,7 +12,7 @@ struct page *page_lookup (struct hash *h, const void *va); /*** haein ***/
 unsigned page_hash (const struct hash_elem *h_elem, void *aux UNUSED);
 bool page_less (const struct hash_elem *h_elem1, const struct hash_elem *h_elem2, void *aux UNUSED);
 
-void spt_hash_destroctor (struct hash_elem *e, void *aux); 	/*** GrilledSalmon ***/
+void spt_hash_destructor (struct hash_elem *e, void *aux); 	/*** GrilledSalmon ***/
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -263,7 +263,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
 }
 
 /*** GrilledSalmon ***/
-void spt_hash_destroctor (struct hash_elem *e, void *aux) {
+void spt_hash_destructor (struct hash_elem *e, void *aux) {
 	struct page *page = hash_entry(e, struct page, hash_elem);
 	/* filebacked할 때 수정 필요!!!(writeback) */
 	
@@ -277,7 +277,7 @@ supplemental_page_table_kill (struct supplemental_page_table *spt) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
 	
-	hash_destroy(&spt->h, spt_hash_destroctor);
+	hash_destroy(&spt->h, spt_hash_destructor);
 }
 
 
