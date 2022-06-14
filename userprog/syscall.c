@@ -137,17 +137,17 @@ syscall_handler (struct intr_frame *f UNUSED) {
 /* 사용할 수 있는 주소인지 확인하는 함수. 사용 불가 시 -1 종료 */
 void check_address(const uint64_t *uaddr){
 	struct thread *cur = thread_current();
-	#ifndef VM
+#ifndef VM
 	if (uaddr == NULL || !(is_user_vaddr(uaddr)) || pml4_get_page(cur->pml4, uaddr) == NULL)
 	{
 		exit(-1);
 	}
-	#else
+#else
 	if (uaddr == NULL || !(is_user_vaddr(uaddr)) || spt_find_page(cur->spt, uaddr) == NULL)
 	{
 		exit(-1);
 	}
-	#endif
+#endif
 }
 
 /* 파일 디스크립터로 파일 검색 하여 파일 구조체 반환 */
