@@ -868,17 +868,18 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
-	vm_alloc_page_with_initializer(VM_STACK, stack_bottom, true);
+	vm_alloc_page(VM_STACK, stack_bottom, true);
 	struct page *page = spt_find_page(thread_current()->spt, stack_bottom);
+	
+	if (page == NULL) {
+		return success;
+	}
+	
 	success = vm_do_claim_page(page);
 	memset(stack_bottom, 0, PGSIZE);
 
 	if_->rsp = USER_STACK;
-
-	if(!success){
-		free(page);
-	}
-
+	
 	return success;
 }
 #endif /* VM */
