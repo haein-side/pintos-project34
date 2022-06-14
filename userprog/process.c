@@ -801,7 +801,7 @@ lazy_load_segment (struct page *page, void *aux) {
 		return false;
 	}
 	memset(page->frame->kva + seg_load->read_bytes, 0, PGSIZE - seg_load->read_bytes);
-	// free(aux);
+	free(aux);
 	return true;
 }
 
