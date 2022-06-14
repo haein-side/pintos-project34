@@ -79,6 +79,13 @@ struct frame {
 	struct page *page;	// a page structure
 };
 
+/* load_segment에서 만들어주고 vm_alloc_page_initializer에 넘겨주는 aux 구조체 */
+/* segment에 대한 정보 담음 */
+struct seg_info {
+	off_t ofs;
+	size_t read_bytes;
+};
+
 /* The function table for page operations.
  * This is one way of implementing "interface" in C.
  * Put the table of "method" into the struct's member, and
