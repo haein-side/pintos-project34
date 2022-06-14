@@ -17,6 +17,7 @@ static const struct page_operations anon_ops = {
 	.type = VM_ANON,
 };
 
+/*** haein ***/
 /* Initialize the data for anonymous pages */
 void
 vm_anon_init (void) {
@@ -24,13 +25,21 @@ vm_anon_init (void) {
 	swap_disk = NULL;
 }
 
+/*** haein ***/
 /* Initialize the file mapping */
 bool
-anon_initializer (struct page *page, enum vm_type type, void *kva) {
+anon_initializer (struct page *page, enum vm_type type, void *kva UNUSED) {
+	ASSERT(page != NULL);
+	
 	/* Set up the handler */
 	page->operations = &anon_ops;
 
 	struct anon_page *anon_page = &page->anon;
+
+	anon_page->aux_type = VM_AUXTYPE(type); // anon_page의 aux_type은 anon_type이므로 1을 빼줌 
+	anon_page->slot_number = -1;            // 아직 swap out된 적 없으므로 slot number -1로 줌
+
+	return anon_page != NULL;
 }
 
 /* Swap in the page by read contents from the swap disk. */
