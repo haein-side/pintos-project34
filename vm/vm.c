@@ -45,6 +45,7 @@ static struct frame *vm_get_victim (void);
 static bool vm_do_claim_page (struct page *page);
 static struct frame *vm_evict_frame (void);
 
+/*** GrilledSalmon ***/
 /* Create the pending page object with initializer. If you want to create a
  * page, do not create it directly and make it through this function or
  * `vm_alloc_page`. */
@@ -55,14 +56,41 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 	ASSERT (VM_TYPE(type) != VM_UNINIT)
 
 	struct supplemental_page_table *spt = &thread_current ()->spt;
+	upage = pg_round_down(upage);
 
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page (spt, upage) == NULL) {
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
+		struct page *page = malloc(sizeof(struct page));
+		bool (*initializer)(struct page *, enum vm_type, void *);
+
+		switch (VM_TYPE(type))
+		{
+		case VM_ANON:
+			initializer = anon_initializer;
+			break;
+		
+		case VM_FILE:
+			initializer = file_backed_initializer;
+			break;
+
+		default:
+			initializer = NULL;
+			break;
+		}
+
+		uninit_new(page, upage, init, type, aux, initializer);
+		page->writable = writable;
 
 		/* TODO: Insert the page into the spt. */
+		if (!spt_insert_page(spt, page)) {
+			free(page);
+			goto err;
+		}
+
+		return true;
 	}
 err:
 	return false;
@@ -199,12 +227,12 @@ vm_do_claim_page (struct page *page) { // 이미 만들어진 page => 매핑
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
-	if (pml4_get_page (t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, frame->kva, true)) { /*** 고민 필요!!! - true? ***/
+	if (pml4_get_page (t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, frame->kva, page->writable)) { /*** 고민 필요!!! - true? ***/
 		return swap_in (page, frame->kva); // page fault가 일어났을 때 swap in
-	} else {
+	} else { // 만약 page fault에서 호출했는데 실패했으면 바로 프로세스 종료
+		// 나중에 vm_dealloc_page 써야 할듯? /*** GriiledSalmon ***/
 		return false;
 	}
-
 }
 
 /*** Dongdongbro ***/
