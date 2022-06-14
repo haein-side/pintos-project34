@@ -57,4 +57,6 @@ anon_swap_out (struct page *page) {
 static void
 anon_destroy (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
+	/*** 고민 필요!!! - swap out 시 달라질 수 있음 ***/
+	free(page->frame);
 }
