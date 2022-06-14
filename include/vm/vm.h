@@ -13,7 +13,7 @@ enum vm_type {
 	VM_FILE = 2,
 	/* page that hold the page cache, for project 4 */
 	VM_PAGE_CACHE = 3,
-	
+
 	VM_STACK = 9,			/*** GrilledSalmon ***/
 	VM_SEG = 17,
 	/* Bit flags to store state */
@@ -56,7 +56,7 @@ struct page {
 	/*** Dongdongbro ***/
 	struct hash_elem hash_elem;
 	bool writable;
-	
+
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union
 	 * 메모리 영역에 저장하는 다양한 유형의 데이터
@@ -92,6 +92,11 @@ struct page_operations {
 	void (*destroy) (struct page *);
 	enum vm_type type;
 };
+
+struct seg_info {
+	off_t ofs;
+	uint32_t read_bytes;
+}
 
 #define swap_in(page, v) (page)->operations->swap_in ((page), v)
 #define swap_out(page) (page)->operations->swap_out (page)

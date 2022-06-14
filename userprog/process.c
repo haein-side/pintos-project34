@@ -792,6 +792,16 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
+	struct file *file = thread_current()->running;
+	strcut seg_info *seg_load = aux;
+	file_seek(file, aux->ofs);
+	if(file_read(file, page->frame->kva, seg_load->read_bytes) != (int) seg_load->read_bytes){
+		palloc_free_page(page->frame->kva);
+		return false;
+	}
+	memset(page->frame->kva + seg_load->read_bytes, 0, PGSIZE - seg_load->read_bytes);
+	// free(aux);
+	return true;
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
@@ -823,10 +833,15 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		void *aux = NULL;
-		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, aux))
+		struct seg_info *seg_info = calloc(1, sizeof(struct seg_info));
+		seg_info->ofs = ofs;
+		seg_info->page_read_bytes;
+		void *aux = seg_info
+		if (!vm_alloc_page_with_initializer (VM_SEG, upage,
+					writable, lazy_load_segment, aux)){
+						free(seg_info);
 			return false;
+					}
 
 		/* Advance. */
 		read_bytes -= page_read_bytes;
@@ -846,6 +861,16 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
+	vm_alloc_page_with_initializer(VM_STACK, stack_bottom, true);
+	struct page *page = spt_find_page(thread_current()->spt, stack_bottom);
+	success = vm_do_claim_page(page);
+	memset(stack_bottom, 0, PGSIZE);
+
+	if_->rsp = USER_STACK;
+
+	if(!success){
+		free(page);
+	}
 
 	return success;
 }
