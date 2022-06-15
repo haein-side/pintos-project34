@@ -551,6 +551,10 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 	}
 
+	if(thread_current()->running) {
+		file_close(thread_current()->running);
+	}
+
 	t->running = file;
 
 	/* 현재 오픈한 파일에 다른내용 쓰지 못하게 함 */

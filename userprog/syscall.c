@@ -262,7 +262,7 @@ int exec (char *file_name){
 }
 
 /* 버퍼에 있는 내용을 fd 파일에 작성. 파일에 작성한 바이트 반환 */
-write(int fd, const void *buffer, unsigned size)
+int write(int fd, const void *buffer, unsigned size)
 {
 	check_address(buffer);
 	int ret;
