@@ -269,13 +269,15 @@ supplemental_page_table_copy (struct supplemental_page_table *dst, struct supple
 	while (hash_next(&i)){
 		struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
 		enum vm_type type = VM_TYPE (src_page->operations->type);
+		struct seg_info *dst_seg_info;
+		struct page *dst_page;
 
 		switch (type)
 		{
 		case VM_UNINIT :
-			struct seg_info *dst_seg_info = malloc(sizeof(struct seg_info));
+			dst_seg_info = malloc(sizeof(struct seg_info));
 			memcpy(dst_seg_info, src_page->uninit.aux, sizeof(struct seg_info));
-			if(!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, lazy_load_segment, dst_seg_info)){
+			if(!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, dst_seg_info)){
 				return false;
 			};
 			break;
@@ -284,7 +286,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst, struct supple
 			if(!vm_alloc_page(type | src_page->anon.aux_type, src_page->va, src_page->writable) || !vm_claim_page(src_page->va)){
 				return false;
 			};
-			struct page *dst_page = spt_find_page(dst, src_page->va);
+			dst_page = spt_find_page(dst, src_page->va);
 			memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
 			break;
 
@@ -292,7 +294,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst, struct supple
 			if(!vm_alloc_page(type, src_page->va, src_page->writable) || !vm_claim_page(src_page->va)){
 				return false;
 			};
-			struct page *dst_page = spt_find_page(dst, src_page->va);
+			dst_page = spt_find_page(dst, src_page->va);
 			memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
 			break;
 
