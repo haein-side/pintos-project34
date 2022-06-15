@@ -215,9 +215,11 @@ __do_fork (void *aux) {
 	const int MAPLEN = 10;
 	struct MapElem map[10];
 
+	current->running = file_duplicate(parent->running);		/*** GrilledSalmon & half Dong***/
+	
 	/* index for filling map */
 	int dupCount = 0;
-
+	
 	/* fdTable을 순회 */
 	for (int i = 0; i < FDCOUNT_LIMIT; i++)
 	{
