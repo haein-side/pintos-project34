@@ -14,6 +14,8 @@ enum vm_type {
 	/* page that hold the page cache, for project 4 */
 	VM_PAGE_CACHE = 3,
 
+	VM_STACK = 9,			/*** GrilledSalmon ***/
+	VM_SEG = 17,
 	/* Bit flags to store state */
 
 	/* Auxillary bit flag marker for store information. You can add more
@@ -36,6 +38,7 @@ struct page_operations;
 struct thread;
 
 #define VM_TYPE(type) ((type) & 7)
+#define VM_AUXTYPE(type) ((type) & 24)		/*** GrilledSalmon ***/
 
 /* The representation of "page".
  * This is kind of "parent class", which has four "child class"es, which are
@@ -52,6 +55,8 @@ struct page {
 	/* Your implementation */
 	/*** Dongdongbro ***/
 	struct hash_elem hash_elem;
+	bool writable;
+
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union
 	 * 메모리 영역에 저장하는 다양한 유형의 데이터
@@ -72,6 +77,13 @@ struct page {
 struct frame {
 	void *kva; 			// kernel virtual address
 	struct page *page;	// a page structure
+};
+
+/* load_segment에서 만들어주고 vm_alloc_page_initializer에 넘겨주는 aux 구조체 */
+/* segment에 대한 정보 담음 */
+struct seg_info {
+	off_t ofs;
+	size_t read_bytes;
 };
 
 /* The function table for page operations.

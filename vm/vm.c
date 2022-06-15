@@ -5,12 +5,18 @@
 #include "vm/inspect.h"
 #include "threads/mmu.h"
 #include "threads/vaddr.h"
+#include "lib/kernel/hash.h"
+#include "threads/malloc.h"
+#include "userprog/process.h"
+#include <string.h>
 
 struct page *page_lookup (struct hash *h, const void *va); /*** haein ***/
 
 /*** Dongdongbro ***/
 unsigned page_hash (const struct hash_elem *h_elem, void *aux UNUSED);
 bool page_less (const struct hash_elem *h_elem1, const struct hash_elem *h_elem2, void *aux UNUSED);
+
+void spt_hash_destructor (struct hash_elem *e, void *aux); 	/*** GrilledSalmon ***/
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -45,6 +51,7 @@ static struct frame *vm_get_victim (void);
 static bool vm_do_claim_page (struct page *page);
 static struct frame *vm_evict_frame (void);
 
+/*** GrilledSalmon ***/
 /* Create the pending page object with initializer. If you want to create a
  * page, do not create it directly and make it through this function or
  * `vm_alloc_page`. */
@@ -55,14 +62,41 @@ vm_alloc_page_with_initializer (enum vm_type type, void *upage, bool writable,
 	ASSERT (VM_TYPE(type) != VM_UNINIT)
 
 	struct supplemental_page_table *spt = &thread_current ()->spt;
+	upage = pg_round_down(upage);
 
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page (spt, upage) == NULL) {
 		/* TODO: Create the page, fetch the initialier according to the VM type,
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
+		struct page *page = malloc(sizeof(struct page));
+		bool (*initializer)(struct page *, enum vm_type, void *);
+
+		switch (VM_TYPE(type))
+		{
+		case VM_ANON:
+			initializer = anon_initializer;
+			break;
+
+		case VM_FILE:
+			initializer = file_backed_initializer;
+			break;
+
+		default:
+			initializer = NULL;
+			break;
+		}
+
+		uninit_new(page, upage, init, type, aux, initializer);
+		page->writable = writable;
 
 		/* TODO: Insert the page into the spt. */
+		if (!spt_insert_page(spt, page)) {
+			free(page);
+			goto err;
+		}
+
+		return true;
 	}
 err:
 	return false;
@@ -154,13 +188,15 @@ vm_handle_wp (struct page *page UNUSED) {
 
 /* Return true on success */
 bool
-vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr UNUSED,
+vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
-	struct supplemental_page_table *spt UNUSED = &thread_current ()->spt;
-	struct page *page = NULL;
+	struct supplemental_page_table *spt = &thread_current ()->spt;
+	struct page *page = spt_find_page(spt, addr);
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
-
+	if(page == NULL){
+		return false;
+	}
 	return vm_do_claim_page (page);
 }
 
@@ -177,9 +213,9 @@ vm_dealloc_page (struct page *page) {
 // va를 할당하기 위해 페이지를 선언한다.
 bool
 vm_claim_page (void *va) {
-	struct page *page = spt_find_page(thread_current()->spt, va);
+	struct page *page = spt_find_page(&thread_current()->spt, va);
 	/* TODO: Fill this function */
-	
+
 	if (page != NULL) {
 		return vm_do_claim_page (page);
 	}
@@ -199,12 +235,12 @@ vm_do_claim_page (struct page *page) { // 이미 만들어진 page => 매핑
 	page->frame = frame;
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
-	if (pml4_get_page (t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, frame->kva, true)) { /*** 고민 필요!!! - true? ***/
+	if (pml4_get_page (t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, frame->kva, page->writable)) { /*** 고민 필요!!! - true? ***/
 		return swap_in (page, frame->kva); // page fault가 일어났을 때 swap in
-	} else {
+	} else { // 만약 page fault에서 호출했는데 실패했으면 바로 프로세스 종료
+		// 나중에 vm_dealloc_page 써야 할듯? /*** GriiledSalmon ***/
 		return false;
 	}
-
 }
 
 /*** Dongdongbro ***/
@@ -224,17 +260,68 @@ supplemental_page_table_init (struct supplemental_page_table *spt) {
 	}
 }
 
+/*** Dongdongbro ***/
 /* Copy supplemental page table from src to dst */
 bool
-supplemental_page_table_copy (struct supplemental_page_table *dst UNUSED,
-		struct supplemental_page_table *src UNUSED) {
+supplemental_page_table_copy (struct supplemental_page_table *dst, struct supplemental_page_table *src) {
+	struct hash_iterator i;
+	hash_first (&i, &src->h);
+	while (hash_next(&i)){
+		struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
+		enum vm_type type = VM_TYPE (src_page->operations->type);
+		struct seg_info *dst_seg_info;
+		struct page *dst_page;
+
+		switch (type)
+		{
+		case VM_UNINIT :
+			dst_seg_info = malloc(sizeof(struct seg_info));
+			memcpy(dst_seg_info, src_page->uninit.aux, sizeof(struct seg_info));
+			if(!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, dst_seg_info)){
+				return false;
+			};
+			break;
+
+		case VM_ANON :
+			if(!vm_alloc_page(type | src_page->anon.aux_type, src_page->va, src_page->writable) || !vm_claim_page(src_page->va)){
+				return false;
+			};
+			dst_page = spt_find_page(dst, src_page->va);
+			memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
+			break;
+
+		case VM_FILE :		/*** 수정 필요!!! ***/
+			if(!vm_alloc_page(type, src_page->va, src_page->writable) || !vm_claim_page(src_page->va)){
+				return false;
+			};
+			dst_page = spt_find_page(dst, src_page->va);
+			memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
+			break;
+
+		default :
+			PANIC("Cached type");
+			break;
+		}
+	}
+	return true;
 }
 
+/*** GrilledSalmon ***/
+void spt_hash_destructor (struct hash_elem *e, void *aux) {
+	struct page *page = hash_entry(e, struct page, hash_elem);
+	/* filebacked할 때 수정 필요!!!(writeback) */
+	
+	return vm_dealloc_page(page);
+}
+
+/*** GrilledSalmon ***/
 /* Free the resource hold by the supplemental page table */
 void
-supplemental_page_table_kill (struct supplemental_page_table *spt UNUSED) {
+supplemental_page_table_kill (struct supplemental_page_table *spt) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+	
+	hash_destroy(&spt->h, spt_hash_destructor);
 }
 
 
