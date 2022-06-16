@@ -176,9 +176,21 @@ vm_get_frame (void) {
 	return frame;
 }
 
+/*** Dongdongbro ***/
 /* Growing the stack. */
 static void
-vm_stack_growth (void *addr UNUSED) {
+vm_stack_growth (void *addr) {
+	addr = pg_round_down(addr);
+
+	if (addr < USER_STACK_LIMIT){
+		goto err;
+	}
+	if (vm_alloc_page(VM_STACK, addr, true) && vm_claim_page(addr)){
+		memset(addr, 0, PGSIZE);
+		return;
+	}
+	err :
+		PANIC("Stack growth failed!");
 }
 
 /* Handle the fault on write_protected page */
@@ -325,7 +337,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst, struct supple
 void spt_hash_destructor (struct hash_elem *e, void *aux) {
 	struct page *page = hash_entry(e, struct page, hash_elem);
 	/* filebacked할 때 수정 필요!!!(writeback) */
-	
+
 	return vm_dealloc_page(page);
 }
 
@@ -335,7 +347,7 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
-	
+
 	hash_destroy(&spt->h, spt_hash_destructor);
 }
 

@@ -216,10 +216,10 @@ __do_fork (void *aux) {
 	struct MapElem map[10];
 
 	current->running = file_duplicate(parent->running);		/*** GrilledSalmon & half Dong***/
-	
+
 	/* index for filling map */
 	int dupCount = 0;
-	
+
 	/* fdTable을 순회 */
 	for (int i = 0; i < FDCOUNT_LIMIT; i++)
 	{
@@ -551,6 +551,7 @@ load (const char *file_name, struct intr_frame *if_) {
 		goto done;
 	}
 
+	/*** Superduper-GrilledSalmon ***/
 	if(thread_current()->running) {
 		file_close(thread_current()->running);
 	}
@@ -805,16 +806,16 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: VA is available when calling this function. */
 	struct file *file = thread_current()->running;
 	struct seg_info *seg_load = aux;
-	
+
 	file_seek(file, seg_load->ofs);
-	
+
 	if(file_read(file, page->frame->kva, seg_load->read_bytes) != (int) seg_load->read_bytes){
 		return false;
 	}
-	
+
 	memset(page->frame->kva + seg_load->read_bytes, 0, PGSIZE - seg_load->read_bytes);
 	free(seg_load);
-	
+
 	return true;
 }
 
@@ -847,7 +848,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		 * and zero the final PAGE_ZERO_BYTES bytes. */
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
-		
+
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 
 		struct seg_info *seg_info = malloc(sizeof(struct seg_info));
@@ -881,12 +882,12 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
 	vm_alloc_page(VM_STACK, stack_bottom, true);
-	
+
 	success = vm_claim_page(stack_bottom);
 	memset(stack_bottom, 0, PGSIZE);
 
 	if_->rsp = USER_STACK;
-	
+
 	return success;
 }
 #endif /* VM */
