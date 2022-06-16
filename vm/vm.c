@@ -176,9 +176,33 @@ vm_get_frame (void) {
 	return frame;
 }
 
+/*** Dongdongbro ***/
 /* Growing the stack. */
 static void
-vm_stack_growth (void *addr UNUSED) {
+vm_stack_growth (void *addr) {
+	struct thread *t = thread_current();
+	addr = pg_round_down(addr);
+
+	if (addr < USER_STACK_LIMIT){
+		goto err;
+	}
+	
+	void *stack_bottom = t->stack_bottom;
+
+	do {
+		stack_bottom -= PGSIZE;
+		if (!vm_alloc_page(VM_STACK, stack_bottom, true) || !vm_claim_page(stack_bottom)){
+			goto err;
+		}
+		memset(stack_bottom, 0, PGSIZE);
+	} while (stack_bottom != addr);
+
+	t->stack_bottom = addr;
+	
+	return;
+
+err :
+	PANIC("Stack growth failed!");
 }
 
 /* Handle the fault on write_protected page */
@@ -186,15 +210,30 @@ static bool
 vm_handle_wp (struct page *page UNUSED) {
 }
 
+
+/*** GrilledSalmon ***/
 /* Return true on success */
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
-	struct supplemental_page_table *spt = &thread_current ()->spt;
-	struct page *page = spt_find_page(spt, addr);
+	struct thread *t = thread_current();
+	struct page *page = spt_find_page(&t->spt, addr);
+	void *rsp;
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
+
+	if (is_user_vaddr(f->rsp)) {
+		rsp = f->rsp;
+		t->rsp = rsp;
+	} else {
+		rsp = t->rsp;
+	}
+
 	if(page == NULL){
+		if (addr == rsp - 8) { // stack growth
+			vm_stack_growth(addr);
+			return true;
+		}
 		return false;
 	}
 	return vm_do_claim_page (page);
@@ -310,7 +349,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst, struct supple
 void spt_hash_destructor (struct hash_elem *e, void *aux) {
 	struct page *page = hash_entry(e, struct page, hash_elem);
 	/* filebacked할 때 수정 필요!!!(writeback) */
-	
+
 	return vm_dealloc_page(page);
 }
 
@@ -320,7 +359,7 @@ void
 supplemental_page_table_kill (struct supplemental_page_table *spt) {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
-	
+
 	hash_destroy(&spt->h, spt_hash_destructor);
 }
 

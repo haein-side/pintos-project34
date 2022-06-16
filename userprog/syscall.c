@@ -79,6 +79,13 @@ void
 syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
 	// printf("syscall! , %d\n",f->R.rax);
+
+#ifdef VM
+	/*** haein-side ***/
+    // 유저 영역 스레드의 인터럽트 프레임(유저 스택 가리킴) rsp값을 저장
+    thread_current()->rsp = f->rsp;
+#endif
+
 	switch (f->R.rax)
 	{
 	case SYS_HALT:
@@ -307,6 +314,13 @@ int write(int fd, const void *buffer, unsigned size)
 int read(int fd, void *buffer, unsigned size)
 {
 	check_address(buffer);
+	/*** Dongdongbro ***/
+#ifdef VM 
+	struct page *page = spt_find_page(&thread_current()->spt, buffer);
+	if (!page->writable){
+		exit(-1);
+	}
+#endif
 	int ret;
 	struct thread *cur = thread_current();
 
