@@ -186,15 +186,30 @@ static bool
 vm_handle_wp (struct page *page UNUSED) {
 }
 
+
+/*** GrilledSalmon ***/
 /* Return true on success */
 bool
 vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr,
 		bool user UNUSED, bool write UNUSED, bool not_present UNUSED) {
-	struct supplemental_page_table *spt = &thread_current ()->spt;
-	struct page *page = spt_find_page(spt, addr);
+	struct thread *t = thread_current();
+	struct page *page = spt_find_page(&t->spt, addr);
+	void *rsp;
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
+
+	if (is_user_vaddr(f->rsp)) {
+		rsp = f->rsp;
+		t->rsp = rsp;
+	} else {
+		rsp = t->rsp;
+	}
+
 	if(page == NULL){
+		if (addr == rsp - 8) { // stack growth
+			vm_stack_growth(addr);
+			return true;
+		}
 		return false;
 	}
 	return vm_do_claim_page (page);

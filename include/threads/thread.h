@@ -122,32 +122,32 @@ struct thread
 #endif
 	/* Owned by thread.c. */
 	struct intr_frame tf; /* Information for switching */
-	unsigned magic;		  /* Detects stack overflow. */
    /* 자식 프로세스 순회용 리스트 */
-    struct list child_list;
-    struct list_elem child_elem;
+   struct list child_list;
+   struct list_elem child_elem;
 
-    /* wait_sema 를 이용하여 자식 프로세스가 종료할때까지 대기함. 종료 상태를 저장 */
-    struct semaphore wait_sema;
-    int exit_status;
+   /* wait_sema 를 이용하여 자식 프로세스가 종료할때까지 대기함. 종료 상태를 저장 */
+   struct semaphore wait_sema;
+   int exit_status;
 
-    /* 자식에게 넘겨줄 intr_frame
-    fork가 완료될때 까지 부모가 기다리게 하는 forksema
-    자식 프로세스 종료상태를 부모가 받을때까지 종료를 대기하게 하는 free_sema */
-    struct intr_frame parent_if;
-    struct semaphore fork_sema;
-    struct semaphore free_sema;
+   /* 자식에게 넘겨줄 intr_frame
+   fork가 완료될때 까지 부모가 기다리게 하는 forksema
+   자식 프로세스 종료상태를 부모가 받을때까지 종료를 대기하게 하는 free_sema */
+   struct intr_frame parent_if;
+   struct semaphore fork_sema;
+   struct semaphore free_sema;
 
-    /* fd table 파일 구조체와 fd index */
-    struct file **fdTable;
-    int fdIdx;
+   /* fd table 파일 구조체와 fd index */
+   struct file **fdTable;
+   int fdIdx;
 
-    int stdin_count;
-    int stdout_count;
+   int stdin_count;
+   int stdout_count;
 
-    /* 현재 실행 중인 파일 */
-    struct file *running;
+   /* 현재 실행 중인 파일 */
+   struct file *running;
 
+	unsigned magic;		  /* Detects stack overflow. */
 };
 
 /* If false (default), use round-robin scheduler.
