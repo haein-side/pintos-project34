@@ -110,7 +110,6 @@ struct thread
 
    int nice;		/* 우선순위에 영향을 주는 값 */
    int recent_cpu; /* 최근에 얼마나 많은 CPU time을 사용했는가를 표현 */
-   int64_t rsp;    /* 유저영역에서 발생한 인터럽트일 때 인터럽트 프레임(유저영역)의 rsp값을 저장해둠 */ /*** haein-side ***/
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
@@ -119,6 +118,7 @@ struct thread
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
+	uint64_t rsp;    /* 유저영역에서 발생한 인터럽트일 때 인터럽트 프레임(유저영역)의 rsp값을 저장해둠 */ /*** haein-side ***/
 #endif
 	/* Owned by thread.c. */
 	struct intr_frame tf; /* Information for switching */
