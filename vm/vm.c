@@ -180,17 +180,29 @@ vm_get_frame (void) {
 /* Growing the stack. */
 static void
 vm_stack_growth (void *addr) {
+	struct thread *t = thread_current();
 	addr = pg_round_down(addr);
 
 	if (addr < USER_STACK_LIMIT){
 		goto err;
 	}
-	if (vm_alloc_page(VM_STACK, addr, true) && vm_claim_page(addr)){
-		memset(addr, 0, PGSIZE);
-		return;
-	}
-	err :
-		PANIC("Stack growth failed!");
+	
+	void *stack_bottom = t->stack_bottom;
+
+	do {
+		stack_bottom -= PGSIZE;
+		if (!vm_alloc_page(VM_STACK, stack_bottom, true) || !vm_claim_page(stack_bottom)){
+			goto err;
+		}
+		memset(stack_bottom, 0, PGSIZE);
+	} while (stack_bottom != addr);
+
+	t->stack_bottom = addr;
+	
+	return;
+
+err :
+	PANIC("Stack growth failed!");
 }
 
 /* Handle the fault on write_protected page */

@@ -886,6 +886,7 @@ setup_stack (struct intr_frame *if_) {
 	success = vm_claim_page(stack_bottom);
 	memset(stack_bottom, 0, PGSIZE);
 
+	thread_current()->stack_bottom = stack_bottom;
 	if_->rsp = USER_STACK;
 
 	return success;

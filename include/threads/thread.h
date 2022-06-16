@@ -119,6 +119,7 @@ struct thread
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
 	uint64_t rsp;    /* 유저영역에서 발생한 인터럽트일 때 인터럽트 프레임(유저영역)의 rsp값을 저장해둠 */ /*** haein-side ***/
+   void *stack_bottom;  /*스택이 할당받은 페이지의 최소 주소*/
 #endif
 	/* Owned by thread.c. */
 	struct intr_frame tf; /* Information for switching */
