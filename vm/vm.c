@@ -179,10 +179,10 @@ vm_get_frame (void) {
 /*** Dongdongbro ***/
 /* Growing the stack. */
 static void
-vm_stack_growth (void *addr UNUSED) {
+vm_stack_growth (void *addr) {
 	addr = pg_round_down(addr);
 
-	if (addr <= USER_STACK_LIMIT){
+	if (addr < USER_STACK_LIMIT){
 		goto err;
 	}
 	if (vm_alloc_page(VM_STACK, addr, true) && vm_claim_page(addr)){
