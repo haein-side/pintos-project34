@@ -150,7 +150,7 @@ void check_address(const uint64_t *uaddr){
 		exit(-1);
 	}
 #else
-	if (uaddr == NULL || !(is_user_vaddr(uaddr)) || spt_find_page(&cur->spt, uaddr) == NULL)
+	if (uaddr == NULL || !(is_user_vaddr(uaddr)) || (spt_find_page(&cur->spt, uaddr) == NULL && !(cur->rsp<=uaddr && uaddr<USER_STACK)))
 	{
 		exit(-1);
 	}
@@ -317,7 +317,7 @@ int read(int fd, void *buffer, unsigned size)
 	/*** Dongdongbro ***/
 #ifdef VM 
 	struct page *page = spt_find_page(&thread_current()->spt, buffer);
-	if (!page->writable){
+	if (!(thread_current()->rsp<=buffer && buffer<USER_STACK) && !page->writable){
 		exit(-1);
 	}
 #endif
