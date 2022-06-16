@@ -176,6 +176,7 @@ vm_get_frame (void) {
 	return frame;
 }
 
+/*** Dongdongbro ***/
 /* Growing the stack. */
 static void
 vm_stack_growth (void *addr UNUSED) {

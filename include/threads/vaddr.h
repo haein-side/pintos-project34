@@ -36,6 +36,7 @@
 
 /* User stack start */
 #define USER_STACK 0x47480000
+/*** Dongdongbro ***/
 #define USER_STACK_LIMIT USER_STACK - (1<<20)
 
 /* Returns true if VADDR is a user virtual address. */
