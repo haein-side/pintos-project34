@@ -186,22 +186,12 @@ vm_stack_growth (void *addr) {
 	if (addr < USER_STACK_LIMIT){
 		goto err;
 	}
-	
-	void *stack_bottom = t->stack_bottom;
-
-	do {
-		stack_bottom -= PGSIZE;
-		if (!vm_alloc_page(VM_STACK, stack_bottom, true) || !vm_claim_page(stack_bottom)){
-			goto err;
-		}
-		memset(stack_bottom, 0, PGSIZE);
-	} while (stack_bottom != addr);
-
-	t->stack_bottom = addr;
-	
-	return;
-
-err :
+	if (vm_alloc_page(VM_STACK, addr, true) && vm_claim_page(addr)) {
+		memset(addr, 0, PGSIZE);
+		return;
+	}
+		
+err:
 	PANIC("Stack growth failed!");
 }
 
@@ -230,7 +220,7 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr,
 	}
 
 	if(page == NULL){
-		if (addr == rsp - 8) { // stack growth
+		if (addr == rsp - 8 || (rsp <= addr && addr < USER_STACK)) { // stack growth
 			vm_stack_growth(addr);
 			return true;
 		}
@@ -292,7 +282,6 @@ supplemental_page_table_init (struct supplemental_page_table *spt) {
 		free(spt->h);
 	}
 	*/
-
 
 	if (!hash_init(&spt->h, page_hash, page_less, NULL)){
 		PANIC("There are no memory in Kernel pool(malloc fail)");
