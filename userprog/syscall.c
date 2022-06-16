@@ -314,6 +314,13 @@ int write(int fd, const void *buffer, unsigned size)
 int read(int fd, void *buffer, unsigned size)
 {
 	check_address(buffer);
+	/*** Dongdongbro ***/
+#ifdef VM 
+	struct page *page = spt_find_page(&thread_current()->spt, buffer);
+	if (!page->writable){
+		exit(-1);
+	}
+#endif
 	int ret;
 	struct thread *cur = thread_current();
 
