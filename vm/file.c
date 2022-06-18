@@ -60,7 +60,7 @@ do_munmap (void *addr) {
 	struct supplemental_page_table *spt = &thread_current() -> spt;
 	struct page *page = spt_find_page(spt, addr);
 
-	for (int i = 0; i < page->file.remain_cnt; i++) {
+	while (&page->file.remain_cnt) {
 		struct page *munmap_page = spt_find_page(spt, addr);
 
 		if (page == NULL) {
