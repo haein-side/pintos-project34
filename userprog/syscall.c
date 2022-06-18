@@ -133,14 +133,14 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_CLOSE:
 		close(f->R.rdi);
 		break;
-	case SYS_DUP2:
-		f->R.rax = dup2(f->R.rdi, f->R.rsi);
-		break;
 	case SYS_MMAP: /*** haein ***/
 		f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
 		break;
 	case SYS_MUNMAP: /*** haein ***/
 		munmap(f->R.rdi);
+		break;
+	case SYS_DUP2:
+		f->R.rax = dup2(f->R.rdi, f->R.rsi);
 		break;
 	default:
 		exit(-1);
@@ -377,7 +377,6 @@ void close(int fd){
 	struct file *fileobj = find_file_by_fd(fd);
 	if (fileobj == NULL)
 		return;
-
 	struct thread *cur = thread_current();
 
 
@@ -465,11 +464,11 @@ void *mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 	struct file *fileobj = find_file_by_fd(fd);
 
 	if (file_length(fileobj) == 0 || addr != pg_round_down(addr) || addr == NULL 
-		|| length == 0 || fd == STDIN || fd == STDOUT) {
+		|| length == 0 || fd == 0 || fd == 1 || is_kernel_vaddr(addr)) {
 		return NULL;
 	}
 
-	return do_mmap (addr, length, writable, fd, offset);
+	return do_mmap (addr, length, writable, fileobj, offset);
 }
 
 /*** haein ***/

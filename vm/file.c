@@ -63,7 +63,7 @@ file_backed_destroy (struct page *page) {
 		file_close(page->file.file);
 		free(page->file.remain_cnt);
 	} else {
-		*page->file.remain_cnt --;
+		(*page->file.remain_cnt)--;
 	}
 
 	if(pml4_get_page(current_pml4, page->va)){
@@ -88,24 +88,25 @@ do_mmap (void *addr, size_t length, int writable,
 			}
 			off_t now = offset;
 			int *remain_cnt = malloc(sizeof(int));
-			uint64_t file_addr = addr;
-			size_t file_length = length;
+			uint64_t temp_addr = addr;
+			uint64_t initial_addr = addr;
+			size_t temp_length = length;
 
 			*remain_cnt = 0;
 
-			while (file_length > 0){
-				*remain_cnt++;
-				if (spt_find_page(&thread_current()->spt, file_addr) != NULL){
+			while (temp_length > 0){
+				(*remain_cnt)++;
+				if (spt_find_page(&thread_current()->spt, temp_addr) != NULL){
 					return NULL;
 				}
-				file_addr += PGSIZE;
-				file_length -= PGSIZE;
+				temp_addr += PGSIZE;
+				temp_length -= PGSIZE;
 			}
-
-
-
+			
+			size_t f_length = file_length(reopen_file);
+			
 			while (length > 0){
-				size_t page_read_bytes = length < PGSIZE ? length : PGSIZE;
+				size_t page_read_bytes = f_length < PGSIZE ? f_length : PGSIZE;
 				size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 				struct lazy_info *lazy_info = malloc(sizeof(struct lazy_info));
@@ -118,12 +119,14 @@ do_mmap (void *addr, size_t length, int writable,
 					free(lazy_info);
 					return NULL;
 				}
-
+				
+				f_length = f_length > PGSIZE ? f_length - PGSIZE:0;
 				length -= PGSIZE;
 				addr += PGSIZE;
 				now += PGSIZE;
 			}
-		return addr;
+
+		return initial_addr;
 }
 
 /*** haein ***/
@@ -132,7 +135,7 @@ void
 do_munmap (void *addr) {
 	struct supplemental_page_table *spt = &thread_current() -> spt;
 	int remain_cnt = *spt_find_page(spt, addr)->file.remain_cnt;
-	
+
 	while (remain_cnt) {
 		struct page *munmap_page = spt_find_page(spt, addr);
 
@@ -147,7 +150,6 @@ do_munmap (void *addr) {
 
 	err:
 		return;
-
 }
 
 
