@@ -86,7 +86,7 @@ struct lazy_info {
 	struct file *file;
 	off_t ofs;
 	size_t read_bytes;
-	int remain_cnt;
+	int *remain_cnt;
 };
 
 /* The function table for page operations.
