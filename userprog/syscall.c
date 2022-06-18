@@ -463,8 +463,8 @@ int dup2(int oldfd, int newfd){
 void *mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 	struct file *fileobj = find_file_by_fd(fd);
 
-	if (file_length(fileobj) == 0 || addr != pg_round_down(addr) || addr == NULL 
-		|| length == 0 || fd == 0 || fd == 1 || is_kernel_vaddr(addr)) {
+	if (fileobj == NULL || file_length(fileobj) == 0 || addr != pg_round_down(addr) || addr == NULL 
+		|| (int) length <= 0 || fd == 0 || fd == 1 || is_kernel_vaddr(addr) || offset != pg_round_down(offset)) {
 		return NULL;
 	}
 

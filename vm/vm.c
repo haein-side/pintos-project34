@@ -192,7 +192,7 @@ vm_stack_growth (void *addr) {
 		memset(addr, 0, PGSIZE);
 		return;
 	}
-		
+
 err :
 	PANIC("Stack growth failed!");
 }
@@ -222,7 +222,7 @@ vm_try_handle_fault (struct intr_frame *f UNUSED, void *addr,
 	}
 
 	if(page == NULL){
-		if (addr == rsp - 8 || (rsp<=addr && addr<USER_STACK)) { // stack growth
+		if ((addr == rsp - 8 || (rsp<=addr && addr<USER_STACK) && rsp != NULL)) { // stack growth
 			vm_stack_growth(addr);
 			return true;
 		}
@@ -360,7 +360,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst, struct supple
 			break;
 
 		case VM_ANON :
-		{
+		{	
 			if(!vm_alloc_page(type | src_page->anon.aux_type, src_page->va, src_page->writable) || !vm_claim_page(src_page->va)){
 				return false;
 			};
@@ -371,7 +371,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst, struct supple
 
 		case VM_FILE :
 		{
-			if(!vm_alloc_page(type, src_page->va, src_page->writable) || !vm_claim_page(src_page->va)){
+			if(!vm_alloc_page_with_initializer(type, src_page->va, src_page->writable, NULL, &src_page->file) || !vm_claim_page(src_page->va)){
 				return false;
 			};
 			dst_page = spt_find_page(dst, src_page->va);

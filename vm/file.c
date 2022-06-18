@@ -59,13 +59,6 @@ file_backed_destroy (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
 	uint64_t current_pml4 = thread_current()->pml4;
 
-	if (*page->file.remain_cnt == 1){
-		file_close(page->file.file);
-		free(page->file.remain_cnt);
-	} else {
-		(*page->file.remain_cnt)--;
-	}
-
 	if(pml4_get_page(current_pml4, page->va)){
 		if(pml4_is_dirty(current_pml4, page->va)){
 			file_write_at(page->file.file, page->va, page->file.read_bytes, page->file.ofs);
@@ -74,6 +67,14 @@ file_backed_destroy (struct page *page) {
 		palloc_free_page(page->frame->kva);
 		pml4_clear_page(current_pml4, page->va);
 	}
+
+	if (*page->file.remain_cnt == 1){
+		file_close(page->file.file);
+		free(page->file.remain_cnt);
+	} else {
+		(*page->file.remain_cnt)--;
+	}
+
 	free(page->frame);
 }
 
@@ -90,7 +91,7 @@ do_mmap (void *addr, size_t length, int writable,
 			int *remain_cnt = malloc(sizeof(int));
 			uint64_t temp_addr = addr;
 			uint64_t initial_addr = addr;
-			size_t temp_length = length;
+			int temp_length = length;
 
 			*remain_cnt = 0;
 
@@ -103,9 +104,10 @@ do_mmap (void *addr, size_t length, int writable,
 				temp_length -= PGSIZE;
 			}
 			
-			size_t f_length = file_length(reopen_file);
-			
-			while (length > 0){
+			int f_length = file_length(reopen_file);
+			temp_length = length;
+
+			while (temp_length > 0){
 				size_t page_read_bytes = f_length < PGSIZE ? f_length : PGSIZE;
 				size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
@@ -121,7 +123,7 @@ do_mmap (void *addr, size_t length, int writable,
 				}
 				
 				f_length = f_length > PGSIZE ? f_length - PGSIZE:0;
-				length -= PGSIZE;
+				temp_length -= PGSIZE;
 				addr += PGSIZE;
 				now += PGSIZE;
 			}
