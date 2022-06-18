@@ -134,6 +134,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	case SYS_DUP2:
 		f->R.rax = dup2(f->R.rdi, f->R.rsi);
 		break;
+	case SYS_MMAP: /*** haein ***/
+		f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+		break;
+	case SYS_MUNMAP: /*** haein ***/
+		munmap(f->R.rdi);
+		break;
 	default:
 		exit(-1);
 		break;
@@ -450,4 +456,23 @@ int dup2(int oldfd, int newfd){
 	close(newfd);
 	fdt[newfd] = fileobj;
 	return newfd;
+}
+
+/*** haein ***/
+void *mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
+	struct file *fileobj = find_file_by_fd(fd);
+
+	if (file_length(fileobj) == 0 || addr % PGSIZE != 0 || addr == NULL 
+		|| length == 0 || fd == STDIN || fd == STDOUT) {
+		return NULL;
+	}
+
+	return do_mmap (addr, length, writable, fd, offset);
+}
+
+/*** haein ***/
+void munmap (void *addr) {
+	if (addr != NULL) {
+		do_munmap(addr);
+	}
 }

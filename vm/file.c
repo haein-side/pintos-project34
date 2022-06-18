@@ -126,9 +126,28 @@ do_mmap (void *addr, size_t length, int writable,
 		return addr;
 }
 
+/*** haein ***/
 /* Do the munmap */
 void
 do_munmap (void *addr) {
+	struct supplemental_page_table *spt = &thread_current() -> spt;
+	int remain_cnt = *spt_find_page(spt, addr)->file.remain_cnt;
+	
+	while (remain_cnt) {
+		struct page *munmap_page = spt_find_page(spt, addr);
+
+		if (munmap_page == NULL) {
+			goto err;
+		}
+		
+		spt_remove_page(spt, munmap_page); // vm_dealloc_page (page) -> destroy(page) free(page)
+		addr += PGSIZE;
+		remain_cnt--;
+	}
+
+	err:
+		return;
+
 }
 
 
