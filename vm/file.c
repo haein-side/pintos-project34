@@ -29,7 +29,7 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 	/* Set up the handler */
 	page->operations = &file_ops;
 
-	struct lazy_info *lazy_info = &page->uninit.aux;
+	struct lazy_info *lazy_info = page->uninit.aux;
 	struct file_page *file_page = &page->file;
 	file_page->file = lazy_info->file;
 	file_page->ofs = lazy_info->ofs;
