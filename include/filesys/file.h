@@ -10,6 +10,11 @@ struct file {
 	off_t pos;                  /* Current position. */
 	bool deny_write;            /* Has file_deny_write() been called? */
 	int dupCount;               /* dupCount 가 0일때만 파일 종료 */
+#ifdef VM		/*** GrilledSalmon ***/
+	tid_t copying_child;		/* 파일을 복사하고 있는 자식의 tid */
+	struct file *child_file;	/* 자식이 복사해 만든 파일의 포인터 */
+	int *child_remain_cnt; 		/* 자식이 복사해 만든 remain_cnt 포인터 */
+#endif
 };
 
 
