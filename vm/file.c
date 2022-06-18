@@ -23,6 +23,7 @@ void
 vm_file_init (void) {
 }
 
+/*** Dongdongbro ***/
 /* Initialize the file backed page */
 bool
 file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
@@ -51,6 +52,7 @@ file_backed_swap_out (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
 }
 
+/*** Dongdongbro ***/
 /* Destory the file backed page. PAGE will be freed by the caller. */
 static void
 file_backed_destroy (struct page *page) {
@@ -75,6 +77,7 @@ file_backed_destroy (struct page *page) {
 	free(page->frame);
 }
 
+/*** Dongdongbro ***/
 /* Do the mmap */
 void *
 do_mmap (void *addr, size_t length, int writable,
