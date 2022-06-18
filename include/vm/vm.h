@@ -79,11 +79,14 @@ struct frame {
 	struct page *page;	// a page structure
 };
 
-/* load_segment에서 만들어주고 vm_alloc_page_initializer에 넘겨주는 aux 구조체 */
-/* segment에 대한 정보 담음 */
-struct seg_info {
+/*** GrilledSalmon ***/
+/* load_segment와 mmap에서 만들어주고 vm_alloc_page_initializer에 넘겨주는 aux 구조체 */
+/* segment와 file_backed page에 대한 정보 담음 */
+struct lazy_info {
+	struct file *file;
 	off_t ofs;
 	size_t read_bytes;
+	int remain_cnt;
 };
 
 /* The function table for page operations.

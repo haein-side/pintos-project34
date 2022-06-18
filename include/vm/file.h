@@ -6,7 +6,12 @@
 struct page;
 enum vm_type;
 
+/*** GrilledSalmon ***/
 struct file_page {
+	struct file *file;
+	off_t ofs;
+	size_t read_bytes;
+	int remain_cnt;
 };
 
 void vm_file_init (void);
