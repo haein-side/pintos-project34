@@ -375,6 +375,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst, struct supple
 			};
 			dst_page = spt_find_page(dst, src_page->va);
 			memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
+			/*** 부모의 dirty bit를 복사해줘야 할까? 고민 필요!!!!! ***/
 			copy_parent_file(src_page->file.file, *src_page->file.remain_cnt, tid, false, &dst_page->file);
 			break;
 		}
