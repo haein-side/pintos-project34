@@ -296,7 +296,7 @@ static void copy_parent_file (struct file *parent_file, int parent_remain_cnt, t
 	if (is_uninit) {
 		struct lazy_info *lazy_info = aux;
 		if (parent_file->copying_child != child_tid) { 	/* First file copy condition */
-			lazy_info->file = malloc(sizeof(struct file));
+			lazy_info->file = file_reopen(parent_file);
 			lazy_info->remain_cnt = malloc(sizeof(int));
 
 			memcpy(lazy_info->file, parent_file, sizeof(struct file));
@@ -312,7 +312,7 @@ static void copy_parent_file (struct file *parent_file, int parent_remain_cnt, t
 	} else {
 		struct file_page *file_page = aux;
 		if (parent_file->copying_child != child_tid) { 	/* First file copy condition */
-			file_page->file = malloc(sizeof(struct file));
+			file_page->file = file_reopen(parent_file);
 			file_page->remain_cnt = malloc(sizeof(int));
 
 			memcpy(file_page->file, parent_file, sizeof(struct file));
