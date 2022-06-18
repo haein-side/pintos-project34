@@ -29,7 +29,7 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 	/* Set up the handler */
 	page->operations = &file_ops;
 
-	struct lazy_info *lazy_info = page->uninit.aux;
+	struct lazy_info *lazy_info = &page->uninit.aux;
 	struct file_page *file_page = &page->file;
 	file_page->file = lazy_info->file;
 	file_page->ofs = lazy_info->ofs;
@@ -57,10 +57,12 @@ file_backed_destroy (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
 	uint64_t current_pml4 = thread_current()->pml4;
 
-	if (page->file.file != NULL){
+	if ((void *)page->file.remain_cnt == 0){
 		file_close(page->file.file);
-		page->file.file = NULL;
+		free(page->file.remain_cnt);
 	}
+
+	(void *)page->file.remain_cnt --;
 
 	if(pml4_get_page(current_pml4, page->va)){
 		if(pml4_is_dirty(current_pml4, page->va)){
@@ -82,18 +84,22 @@ do_mmap (void *addr, size_t length, int writable,
 				return NULL;
 			}
 			off_t now = offset;
-			int page_cnt = 0;
+			int *remain_cnt = malloc(sizeof(int));
 			uint64_t file_addr = addr;
 			size_t file_length = length;
 
+			*remain_cnt = 0;
+
 			while (file_length > 0){
-				page_cnt++;
+				*remain_cnt++;
 				if (spt_find_page(&thread_current()->spt, file_addr) != NULL){
 					return NULL;
 				}
 				file_addr += PGSIZE;
 				file_length -= PGSIZE;
 			}
+
+
 
 			while (length > 0){
 				size_t page_read_bytes = length < PGSIZE ? length : PGSIZE;
@@ -103,7 +109,7 @@ do_mmap (void *addr, size_t length, int writable,
 				lazy_info->file = reopen_file;
 				lazy_info->ofs = now;
 				lazy_info->read_bytes = page_read_bytes;
-				lazy_info->remain_cnt = page_cnt;
+				lazy_info->remain_cnt = remain_cnt;
 
 				if(!vm_alloc_page_with_initializer(VM_FILE, addr, writable, lazy_load_file, lazy_info)){
 					free(lazy_info);
