@@ -59,8 +59,9 @@ void
 do_munmap (void *addr) {
 	struct supplemental_page_table *spt = &thread_current() -> spt;
 	struct page *page = spt_find_page(spt, addr);
-
-	while (&page->file.remain_cnt) {
+	int remain_cnt = &page->file.remain_cnt;
+	
+	while (remain_cnt) {
 		struct page *munmap_page = spt_find_page(spt, addr);
 
 		if (page == NULL) {
@@ -69,6 +70,8 @@ do_munmap (void *addr) {
 		
 		spt_remove_page(spt, page); // vm_dealloc_page (page) -> destroy(page) free(page)
 		addr += PGSIZE;
+
+		remain_cnt--;
 	}
 
 	err:
