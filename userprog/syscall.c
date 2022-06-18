@@ -462,7 +462,7 @@ int dup2(int oldfd, int newfd){
 void *mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 	struct file *fileobj = find_file_by_fd(fd);
 
-	if (file_length(fileobj) == 0 || *(int *) addr % PGSIZE != 0 || addr == NULL 
+	if (file_length(fileobj) == 0 || addr % PGSIZE != 0 || addr == NULL 
 		|| length == 0 || fd == STDIN || fd == STDOUT) {
 		return NULL;
 	}
