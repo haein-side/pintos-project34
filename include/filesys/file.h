@@ -13,6 +13,7 @@ struct file {
 #ifdef VM		/*** GrilledSalmon ***/
 	tid_t copying_child;		/* 파일을 복사하고 있는 자식의 tid */
 	struct file *child_file;	/* 자식이 복사해 만든 파일의 포인터 */
+	int *child_remain_cnt; 		/* 자식이 복사해 만든 remain_cnt 포인터 */
 #endif
 };
 

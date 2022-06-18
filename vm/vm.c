@@ -18,7 +18,7 @@ bool page_less (const struct hash_elem *h_elem1, const struct hash_elem *h_elem2
 
 /*** GrilledSalmon ***/
 void spt_hash_destructor (struct hash_elem *e, void *aux); 	
-static void copy_parent_file (struct file *parent_file, struct file **child_file_p, tid_t child_tid);
+static void copy_parent_file (struct file *parent_file, int parent_remain_cnt, tid_t child_tid, bool is_uninit, void *aux);
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -291,16 +291,40 @@ supplemental_page_table_init (struct supplemental_page_table *spt) {
 }
 
 /*** GrilledSalmon ***/
-/* Checking the condition, copy file struct from parent to child. 
- * child_file_p : address of child's file pointer*/
-static void copy_parent_file (struct file *parent_file, struct file **child_file_p, tid_t child_tid) {
-	if (parent_file->copying_child != child_tid) { 	/* First file copy condition */
-		*child_file_p = malloc(sizeof(struct file));
-		memcpy(*child_file_p, parent_file, sizeof(struct file));
-		parent_file->copying_child = child_tid;
-		parent_file->child_file = *child_file_p;
+/* Checking the condition, copy file struct from parent to child. */
+static void copy_parent_file (struct file *parent_file, int parent_remain_cnt, tid_t child_tid, bool is_uninit, void *aux) {
+	if (is_uninit) {
+		struct lazy_info *lazy_info = aux;
+		if (parent_file->copying_child != child_tid) { 	/* First file copy condition */
+			lazy_info->file = malloc(sizeof(struct file));
+			lazy_info->remain_cnt = malloc(sizeof(int));
+
+			memcpy(lazy_info->file, parent_file, sizeof(struct file));
+			*lazy_info->remain_cnt = parent_remain_cnt;
+
+			parent_file->copying_child = child_tid;
+			parent_file->child_file = lazy_info->file;
+			parent_file->child_remain_cnt = lazy_info->remain_cnt;
+		} else {
+			lazy_info->file = parent_file->child_file;
+			lazy_info->remain_cnt = parent_file->child_remain_cnt;
+		}
 	} else {
-		*child_file_p = parent_file->child_file;
+		struct file_page *file_page = aux;
+		if (parent_file->copying_child != child_tid) { 	/* First file copy condition */
+			file_page->file = malloc(sizeof(struct file));
+			file_page->remain_cnt = malloc(sizeof(int));
+
+			memcpy(file_page->file, parent_file, sizeof(struct file));
+			*file_page->remain_cnt = parent_remain_cnt;
+
+			parent_file->copying_child = child_tid;
+			parent_file->child_file = file_page->file;
+			parent_file->child_remain_cnt = file_page->remain_cnt;
+		} else {
+			file_page->file = parent_file->child_file;
+			file_page->remain_cnt = parent_file->child_remain_cnt;
+		}
 	}
 }
 
@@ -325,7 +349,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst, struct supple
 			dst_lazy_info = malloc(sizeof(struct lazy_info));
 			memcpy(dst_lazy_info, src_lazy_info, sizeof(struct lazy_info));
 			if (type == VM_FILE) {
-				copy_parent_file(src_lazy_info->file, &dst_lazy_info->file, tid);
+				copy_parent_file(src_lazy_info->file, *src_lazy_info->remain_cnt, tid, true, dst_lazy_info);
 			}
 
 			if(!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, dst_lazy_info)){
@@ -351,7 +375,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst, struct supple
 			};
 			dst_page = spt_find_page(dst, src_page->va);
 			memcpy(dst_page->frame->kva, src_page->frame->kva, PGSIZE);
-			copy_parent_file(src_page->file.file, &dst_page->file.file, tid);
+			copy_parent_file(src_page->file.file, *src_page->file.remain_cnt, tid, false, &dst_page->file);
 			break;
 		}
 
