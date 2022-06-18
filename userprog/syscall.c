@@ -36,6 +36,8 @@ void close(int fd);
 tid_t fork (const char *thread_name, struct intr_frame *f);
 int exec (char *file_name);
 int dup2(int oldfd, int newfd);
+void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
+void munmap (void *addr);
 
 /* syscall helper functions */
 void check_address(const uint64_t *uaddr);
@@ -462,7 +464,7 @@ int dup2(int oldfd, int newfd){
 void *mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
 	struct file *fileobj = find_file_by_fd(fd);
 
-	if (file_length(fileobj) == 0 || addr % PGSIZE != 0 || addr == NULL 
+	if (file_length(fileobj) == 0 || addr != pg_round_down(addr) || addr == NULL 
 		|| length == 0 || fd == STDIN || fd == STDOUT) {
 		return NULL;
 	}
