@@ -1,6 +1,7 @@
 /* file.c: Implementation of memory backed file object (mmaped object). */
 
 #include "vm/vm.h"
+#include "threads/mmu.h"
 
 static bool file_backed_swap_in (struct page *page, void *kva);
 static bool file_backed_swap_out (struct page *page);
@@ -52,7 +53,25 @@ do_mmap (void *addr, size_t length, int writable,
 		struct file *file, off_t offset) {
 }
 
+/*** haein ***/
 /* Do the munmap */
 void
 do_munmap (void *addr) {
+	struct supplemental_page_table *spt = &thread_current() -> spt;
+	struct page *page = spt_find_page(spt, addr);
+
+	for (int i = 0; i < page->file.remain_cnt; i++) {
+		struct page *munmap_page = spt_find_page(spt, addr);
+
+		if (page == NULL) {
+			goto err;
+		}
+		
+		spt_remove_page(spt, page); // vm_dealloc_page (page) -> destroy(page) free(page)
+		addr += PGSIZE;
+	}
+
+	err:
+		return;
+
 }
