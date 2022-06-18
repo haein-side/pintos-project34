@@ -60,9 +60,9 @@ file_backed_destroy (struct page *page) {
 	if (*page->file.remain_cnt == 1){
 		file_close(page->file.file);
 		free(page->file.remain_cnt);
+	} else {
+		*page->file.remain_cnt --;
 	}
-
-	*page->file.remain_cnt --;
 
 	if(pml4_get_page(current_pml4, page->va)){
 		if(pml4_is_dirty(current_pml4, page->va)){
