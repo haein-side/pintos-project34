@@ -57,7 +57,7 @@ file_backed_destroy (struct page *page) {
 	struct file_page *file_page UNUSED = &page->file;
 	uint64_t current_pml4 = thread_current()->pml4;
 
-	if ((void *)page->file.remain_cnt == 0){
+	if ((void *)page->file.remain_cnt == 1){
 		file_close(page->file.file);
 		free(page->file.remain_cnt);
 	}
