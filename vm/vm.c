@@ -10,6 +10,8 @@
 #include "userprog/process.h"
 #include <string.h>
 
+static struct list frame_table;			/*** GrilledSalmon ***/
+
 struct page *page_lookup (struct hash *h, const void *va); /*** haein ***/
 
 /*** Dongdongbro ***/
@@ -32,6 +34,7 @@ vm_init (void) {
 	register_inspect_intr ();
 	/* DO NOT MODIFY UPPER LINES. */
 	/* TODO: Your code goes here. */
+	list_init(&frame_table);
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -133,12 +136,26 @@ spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
 	return true;
 }
 
+/*** GrilledSalmon ***/
 /* Get the struct frame, that will be evicted. */
 static struct frame *
 vm_get_victim (void) {
 	struct frame *victim = NULL;
 	 /* TODO: The policy for eviction is up to you. */
+	struct list_elem *elem;
 
+	ASSERT(list_empty(&frame_table));
+
+	for (elem=list_begin(&frame_table); elem!=list_end(&frame_table); elem=list_next(&elem))
+	{
+		victim = list_entry(elem, struct frame, frame_elem);
+		if (pml4_is_accessed(victim->pml4, victim->page->va)) {
+			pml4_set_accessed(victim->pml4, victim->page->va, false);
+		} else {
+			break;
+		}
+	}
+	/* 만약 리스트를 다 돌았는데 모두 accessed 상태면 자동으로 마지막 frame 리턴*/
 	return victim;
 }
 
@@ -149,7 +166,7 @@ vm_evict_frame (void) {
 	struct frame *victim UNUSED = vm_get_victim ();
 	/* TODO: swap out the victim and return the evicted frame. */
 
-	return NULL;
+		return NULL;
 }
 
 

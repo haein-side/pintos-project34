@@ -77,6 +77,8 @@ struct page {
 struct frame {
 	void *kva; 			// kernel virtual address
 	struct page *page;	// a page structure
+	struct list_elem frame_elem;	// for frame_table
+	uint64_t *pml4;
 };
 
 /*** GrilledSalmon ***/
