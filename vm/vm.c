@@ -8,6 +8,7 @@
 #include "lib/kernel/hash.h"
 #include "threads/malloc.h"
 #include "userprog/process.h"
+#include "lib/kernel/list.h" /*** haein ***/
 #include <string.h>
 
 struct page *page_lookup (struct hash *h, const void *va); /*** haein ***/
@@ -142,18 +143,36 @@ vm_get_victim (void) {
 	return victim;
 }
 
+/*** haein ***/
 /* Evict one page and return the corresponding frame.
- * Return NULL on error.*/
+ * Return NULL on error.
+ * 하나의 페이지를 evict 하고 상응하는 frame을 리턴
+ * 에러가 났을 때는 NULL을 리턴
+ * 프레임 테이블에서 없애고 swap table에서도 없앰 (swap out)
+ */
 static struct frame *
 vm_evict_frame (void) {
 	struct frame *victim UNUSED = vm_get_victim ();
 	/* TODO: swap out the victim and return the evicted frame. */
+	if (!victim) {
+		return NULL;
+	}
 
-	return NULL;
+	if (!list_remove(&victim->frame_elem)) { // frame table에서 삭제
+		return NULL;
+	}
+
+	pml4_clear_page(victim->pml4, victim->page->va); // pml4에서 삭제
+
+	if (!swap_out(victim->page)) { // swap_out 호출
+		return NULL;
+	} 
+
+	return victim;
 }
 
 
-/*** GrilledSalmon ***/
+/*** GrilledSalmon & haein ***/
 /* palloc() and get frame. If there is no available page, evict the page
  * and return it. This always return valid address. That is, if the user pool
  * memory is full, this function evicts the frame to get the available memory
@@ -169,13 +188,18 @@ vm_get_frame (void) {
 	/* TODO: Fill this function. */
 	uint64_t *kva = palloc_get_page(PAL_USER);
 
-	if (kva == NULL) {		/***I'm Your Father***/
-		PANIC("Swap out should be implemented!!!\n");
+	if (kva == NULL) {		
+		struct frame *evicted_frame = vm_evict_frame(); //  evict 시킨 페이지에 상응하는 frame 리턴
+		ASSERT (evicted_frame != NULL);
+		kva = evicted_frame->kva; // evict 시킨 페이지의 kva에 공간 할당 받을 수 있음
 	}
 
 	frame->kva = kva;
-
 	ASSERT (frame->page == NULL);
+
+	list_push_back(&frame_table, &frame->frame_elem); // frame_table에 추가
+	frame->pml4 = thread_current()->pml4; // frame의 pml4에 현재 스레드의 pml4 초기화
+
 	return frame;
 }
 
