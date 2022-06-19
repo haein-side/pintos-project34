@@ -59,9 +59,8 @@ anon_swap_in (struct page *page, void *kva) {
 		kva += DISK_SECTOR_SIZE;
 		sec_no++;
 	}
-	if (bitmap_scan_and_flip(swap_table, slot_number, 1, true) == BITMAP_ERROR) {
-		return false;
-	}
+	
+	bitmap_set(swap_table, slot_number, false);
 	anon_page->slot_number = -1;
 
 	return true;
