@@ -144,7 +144,7 @@ vm_get_victim (void) {
 	 /* TODO: The policy for eviction is up to you. */
 	struct list_elem *elem;
 
-	ASSERT(list_empty(&frame_table));
+	ASSERT(!list_empty(&frame_table));
 
 	for (elem=list_begin(&frame_table); elem!=list_end(&frame_table); elem=list_next(&elem))
 	{
