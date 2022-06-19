@@ -162,11 +162,11 @@ vm_evict_frame (void) {
 		return NULL;
 	}
 
-	pml4_clear_page(victim->pml4, victim->page->va); // pml4에서 삭제
-
 	if (!swap_out(victim->page)) { // swap_out 호출
 		return NULL;
 	} 
+	
+	pml4_clear_page(victim->pml4, victim->page->va); // pml4에서 삭제
 
 	return victim;
 }
