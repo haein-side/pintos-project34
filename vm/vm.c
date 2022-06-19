@@ -8,7 +8,10 @@
 #include "lib/kernel/hash.h"
 #include "threads/malloc.h"
 #include "userprog/process.h"
+#include "lib/kernel/list.h" /*** haein ***/
 #include <string.h>
+
+static struct list frame_table;			/*** GrilledSalmon ***/
 
 struct page *page_lookup (struct hash *h, const void *va); /*** haein ***/
 
@@ -32,6 +35,7 @@ vm_init (void) {
 	register_inspect_intr ();
 	/* DO NOT MODIFY UPPER LINES. */
 	/* TODO: Your code goes here. */
+	list_init(&frame_table);
 }
 
 /* Get the type of the page. This function is useful if you want to know the
@@ -133,27 +137,59 @@ spt_remove_page (struct supplemental_page_table *spt, struct page *page) {
 	return true;
 }
 
+/*** GrilledSalmon ***/
 /* Get the struct frame, that will be evicted. */
 static struct frame *
 vm_get_victim (void) {
 	struct frame *victim = NULL;
 	 /* TODO: The policy for eviction is up to you. */
+	struct list_elem *elem;
+
+	ASSERT(!list_empty(&frame_table));
+
+	for (elem=list_begin(&frame_table); elem!=list_end(&frame_table); elem=list_next(&elem))
+	{
+		victim = list_entry(elem, struct frame, frame_elem);
+		if (pml4_is_accessed(victim->pml4, victim->page->va)) {
+			pml4_set_accessed(victim->pml4, victim->page->va, false);
+		} else {
+			break;
+		}
+	}
+	/* 만약 리스트를 다 돌았는데 모두 accessed 상태면 자동으로 마지막 frame 리턴*/
+	return victim;
+}
+
+/*** haein ***/
+/* Evict one page and return the corresponding frame.
+ * Return NULL on error.
+ * 하나의 페이지를 evict 하고 상응하는 frame을 리턴
+ * 에러가 났을 때는 NULL을 리턴
+ * 프레임 테이블에서 없애고 swap table에서도 없앰 (swap out)
+ */
+static struct frame *
+vm_evict_frame (void) {
+	struct frame *victim = vm_get_victim ();
+	/* TODO: swap out the victim and return the evicted frame. */
+	if (!victim) {
+		return NULL;
+	}
+
+	if (!list_remove(&victim->frame_elem)) { // frame table에서 삭제
+		return NULL;
+	}
+
+	if (!swap_out(victim->page)) { // swap_out 호출
+		return NULL;
+	} 
+	
+	pml4_clear_page(victim->pml4, victim->page->va); // pml4에서 삭제
 
 	return victim;
 }
 
-/* Evict one page and return the corresponding frame.
- * Return NULL on error.*/
-static struct frame *
-vm_evict_frame (void) {
-	struct frame *victim UNUSED = vm_get_victim ();
-	/* TODO: swap out the victim and return the evicted frame. */
 
-	return NULL;
-}
-
-
-/*** GrilledSalmon ***/
+/*** GrilledSalmon & haein ***/
 /* palloc() and get frame. If there is no available page, evict the page
  * and return it. This always return valid address. That is, if the user pool
  * memory is full, this function evicts the frame to get the available memory
@@ -169,13 +205,18 @@ vm_get_frame (void) {
 	/* TODO: Fill this function. */
 	uint64_t *kva = palloc_get_page(PAL_USER);
 
-	if (kva == NULL) {		/***I'm Your Father***/
-		PANIC("Swap out should be implemented!!!\n");
+	if (kva == NULL) {		
+		struct frame *evicted_frame = vm_evict_frame(); //  evict 시킨 페이지에 상응하는 frame 리턴
+		ASSERT (evicted_frame != NULL);
+		kva = evicted_frame->kva; // evict 시킨 페이지의 kva에 공간 할당 받을 수 있음
 	}
 
 	frame->kva = kva;
-
 	ASSERT (frame->page == NULL);
+
+	list_push_back(&frame_table, &frame->frame_elem); // frame_table에 추가
+	frame->pml4 = thread_current()->pml4; // frame의 pml4에 현재 스레드의 pml4 초기화
+
 	return frame;
 }
 
