@@ -196,6 +196,7 @@ disk_get (int chan_no, int dev_no) {
 
 /* Returns the size of disk D, measured in DISK_SECTOR_SIZE-byte
    sectors. */
+/* DISK_SECTOR_SIZE바이트 섹터로 측정된 디스크 D의 크기를 반환합니다. */
 disk_sector_t
 disk_size (struct disk *d) {
 	ASSERT (d != NULL);
