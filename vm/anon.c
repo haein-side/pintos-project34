@@ -2,6 +2,7 @@
 
 #include "vm/vm.h"
 #include "devices/disk.h"
+#include "bitmap.h"
 #include "threads/vaddr.h"
 
 #define PG_PER_SEC PGSIZE/DISK_SECTOR_SIZE
@@ -11,6 +12,7 @@ static struct disk *swap_disk;
 static bool anon_swap_in (struct page *page, void *kva);
 static bool anon_swap_out (struct page *page);
 static void anon_destroy (struct page *page);
+static struct bitmap *swap_table;
 
 /* DO NOT MODIFY this struct */
 static const struct page_operations anon_ops = {
@@ -20,12 +22,14 @@ static const struct page_operations anon_ops = {
 	.type = VM_ANON,
 };
 
-/*** haein ***/
+/*** haein and Dongdongbro ***/
 /* Initialize the data for anonymous pages */
 void
 vm_anon_init (void) {
 	/* TODO: Set up the swap_disk. */
-	swap_disk = NULL;
+	swap_disk = disk_get(1,1);
+	size_t bit_cnt = disk_size(swap_disk) / PG_PER_SEC;
+	swap_table = bitmap_create(bit_cnt);
 }
 
 /*** haein ***/
@@ -37,9 +41,9 @@ anon_initializer (struct page *page, enum vm_type type, void *kva UNUSED) {
 
 	struct anon_page *anon_page = &page->anon;
 
-	anon_page->aux_type = VM_AUXTYPE(type); // anon_page의 aux_type은 anon_type이므로 1을 빼줌 
+	anon_page->aux_type = VM_AUXTYPE(type); // anon_page의 aux_type은 anon_type이므로 1을 빼줌
 	anon_page->slot_number = -1;            // 아직 swap out된 적 없으므로 slot number -1로 줌
-	
+
 	/*** 고민 필요!!! (bool형 리턴값 false인 경우?) ***/
 	return true;
 }
@@ -93,10 +97,13 @@ anon_swap_out (struct page *page) {
 	return true;
 }
 
+/*** Dongdongbro ***/
 /* Destroy the anonymous page. PAGE will be freed by the caller. */
 static void
 anon_destroy (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
-	/*** 고민 필요!!! - swap out 시 달라질 수 있음 ***/
+	if(anon_page->slot_number != -1){
+		bitmap_set(swap_table, anon_page->slot_number, 0);
+	}
 	free(page->frame);
 }

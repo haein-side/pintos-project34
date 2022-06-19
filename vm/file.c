@@ -40,16 +40,34 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 	return true;
 }
 
+/*** Dongdongbro ***/
 /* Swap in the page by read contents from the file. */
 static bool
 file_backed_swap_in (struct page *page, void *kva) {
-	struct file_page *file_page UNUSED = &page->file;
+	struct file_page *file_page = &page->file;
+	struct file *file = file_page->file;
+	file_seek(file, file_page->ofs);
+
+	if(file_read(file, page->frame->kva, file_page->read_bytes) != (int) file_page->read_bytes){
+		return false;
+	}
+
+	memset(page->frame->kva + file_page->read_bytes, 0, PGSIZE - file_page->read_bytes);
+	return true;
 }
 
+/*** Dongdongbro ***/
 /* Swap out the page by writeback contents to the file. */
 static bool
 file_backed_swap_out (struct page *page) {
-	struct file_page *file_page UNUSED = &page->file;
+	struct file_page *file_page = &page->file;
+	uint64_t current_pml4 = page->frame->pml4;
+
+	if(pml4_is_dirty(current_pml4, page->va)){
+		file_write_at(file_page->file, page->va, file_page->read_bytes, file_page->ofs);
+		pml4_set_dirty(current_pml4, page->va, false);
+	}
+	return true;
 }
 
 /*** Dongdongbro ***/
@@ -103,7 +121,7 @@ do_mmap (void *addr, size_t length, int writable,
 				temp_addr += PGSIZE;
 				temp_length -= PGSIZE;
 			}
-			
+
 			int f_length = file_length(reopen_file);
 			temp_length = length;
 
@@ -121,7 +139,7 @@ do_mmap (void *addr, size_t length, int writable,
 					free(lazy_info);
 					return NULL;
 				}
-				
+
 				f_length = f_length > PGSIZE ? f_length - PGSIZE:0;
 				temp_length -= PGSIZE;
 				addr += PGSIZE;
@@ -144,7 +162,7 @@ do_munmap (void *addr) {
 		if (munmap_page == NULL) {
 			goto err;
 		}
-		
+
 		spt_remove_page(spt, munmap_page); // vm_dealloc_page (page) -> destroy(page) free(page)
 		addr += PGSIZE;
 		remain_cnt--;
