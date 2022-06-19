@@ -36,6 +36,8 @@ void close(int fd);
 tid_t fork (const char *thread_name, struct intr_frame *f);
 int exec (char *file_name);
 int dup2(int oldfd, int newfd);
+void *mmap (void *addr, size_t length, int writable, int fd, off_t offset);
+void munmap (void *addr);
 
 /* syscall helper functions */
 void check_address(const uint64_t *uaddr);
@@ -130,6 +132,12 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		break;
 	case SYS_CLOSE:
 		close(f->R.rdi);
+		break;
+	case SYS_MMAP: /*** haein ***/
+		f->R.rax = mmap(f->R.rdi, f->R.rsi, f->R.rdx, f->R.r10, f->R.r8);
+		break;
+	case SYS_MUNMAP: /*** haein ***/
+		munmap(f->R.rdi);
 		break;
 	case SYS_DUP2:
 		f->R.rax = dup2(f->R.rdi, f->R.rsi);
@@ -369,7 +377,6 @@ void close(int fd){
 	struct file *fileobj = find_file_by_fd(fd);
 	if (fileobj == NULL)
 		return;
-
 	struct thread *cur = thread_current();
 
 
@@ -450,4 +457,23 @@ int dup2(int oldfd, int newfd){
 	close(newfd);
 	fdt[newfd] = fileobj;
 	return newfd;
+}
+
+/*** haein ***/
+void *mmap (void *addr, size_t length, int writable, int fd, off_t offset) {
+	struct file *fileobj = find_file_by_fd(fd);
+
+	if (fileobj == NULL || file_length(fileobj) == 0 || addr != pg_round_down(addr) || addr == NULL 
+		|| (int) length <= 0 || fd == 0 || fd == 1 || is_kernel_vaddr(addr) || offset != pg_round_down(offset)) {
+		return NULL;
+	}
+
+	return do_mmap (addr, length, writable, fileobj, offset);
+}
+
+/*** haein ***/
+void munmap (void *addr) {
+	if (addr != NULL) {
+		do_munmap(addr);
+	}
 }
