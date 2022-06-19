@@ -2,6 +2,9 @@
 
 #include "vm/vm.h"
 #include "devices/disk.h"
+#include "threads/vaddr.h"
+
+#define PG_PER_SEC PGSIZE/DISK_SECTOR_SIZE
 
 /* DO NOT MODIFY BELOW LINE */
 static struct disk *swap_disk;
@@ -67,10 +70,27 @@ anon_swap_in (struct page *page, void *kva) {
 
 }
 
+/*** GrilledSalmon ***/
 /* Swap out the page by writing contents to the swap disk. */
 static bool
 anon_swap_out (struct page *page) {
 	struct anon_page *anon_page = &page->anon;
+
+	anon_page->slot_number = bitmap_scan_and_flip(swap_table, 0, 1, false);
+	if (anon_page->slot_number == BITMAP_ERROR) {
+		PANIC("Ran Out of Swap Partition!!!");
+	}
+	
+	int sec_no = anon_page->slot_number * PG_PER_SEC;
+	void *kva = page->frame->kva;
+
+	for (int i=0; i<PG_PER_SEC; i++) {
+		disk_write(swap_disk, sec_no, kva);
+		kva += DISK_SECTOR_SIZE;
+		sec_no++;
+	}
+
+	return true;
 }
 
 /* Destroy the anonymous page. PAGE will be freed by the caller. */
