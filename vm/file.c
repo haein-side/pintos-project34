@@ -44,7 +44,7 @@ file_backed_initializer (struct page *page, enum vm_type type, void *kva) {
 /* Swap in the page by read contents from the file. */
 static bool
 file_backed_swap_in (struct page *page, void *kva) {
-	struct file_page *file_page UNUSED = &page->file;
+	struct file_page *file_page = &page->file;
 	struct file *file = file_page->file;
 	file_seek(file, file_page->ofs);
 
@@ -165,7 +165,7 @@ do_munmap (void *addr) {
 
 		spt_remove_page(spt, munmap_page); // vm_dealloc_page (page) -> destroy(page) free(page)
 		addr += PGSIZE;
-		remain_cnt—;
+		remain_cnt--;
 	}
 
 	err:
