@@ -215,6 +215,7 @@ vm_get_frame (void) {
 	list_push_back(&frame_table, &frame->frame_elem); // frame_table에 추가
 	
 	frame->pml4 = thread_current()->pml4; // frame의 pml4에 현재 스레드의 pml4 초기화
+
 	return frame;
 }
 
@@ -388,7 +389,7 @@ supplemental_page_table_copy (struct supplemental_page_table *dst, struct supple
 			struct lazy_info *src_lazy_info = src_page->uninit.aux;
 			dst_lazy_info = malloc(sizeof(struct lazy_info));
 			memcpy(dst_lazy_info, src_lazy_info, sizeof(struct lazy_info));
-			if (type == VM_FILE) {
+			if (src_page->uninit.type == VM_FILE) {
 				copy_parent_file(src_lazy_info->file, *src_lazy_info->remain_cnt, tid, true, dst_lazy_info);
 			}
 
