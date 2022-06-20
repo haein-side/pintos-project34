@@ -314,8 +314,8 @@ void test_max_priority(void) {
 	struct thread *t1;
 	t1 = list_entry(cur, struct thread, elem);
 
-	if (pri < t1->priority)
-		thread_yield();
+	if (pri < t1->priority && !intr_context())
+			thread_yield();
 }
 
 bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
