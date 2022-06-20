@@ -144,11 +144,10 @@ vm_get_victim (void) {
 	struct frame *victim = NULL;
 	 /* TODO: The policy for eviction is up to you. */
 	struct list_elem *elem;
-
 	ASSERT(!list_empty(&frame_table));
-
-	for (elem=list_begin(&frame_table); elem!=list_end(&frame_table); elem=list_next(&elem))
-	{
+	int count = 0;
+	for (elem=list_begin(&frame_table); elem!=list_end(&frame_table); elem=list_next(elem))
+	{	
 		victim = list_entry(elem, struct frame, frame_elem);
 		if (pml4_is_accessed(victim->pml4, victim->page->va)) {
 			pml4_set_accessed(victim->pml4, victim->page->va, false);
@@ -169,7 +168,7 @@ vm_get_victim (void) {
  */
 static struct frame *
 vm_evict_frame (void) {
-	struct frame *victim = vm_get_victim ();
+	struct frame *victim = vm_get_victim (); // 여기서 걸림!
 	/* TODO: swap out the victim and return the evicted frame. */
 	if (!victim) {
 		return NULL;
@@ -210,13 +209,12 @@ vm_get_frame (void) {
 		ASSERT (evicted_frame != NULL);
 		kva = evicted_frame->kva; // evict 시킨 페이지의 kva에 공간 할당 받을 수 있음
 	}
-
 	frame->kva = kva;
 	ASSERT (frame->page == NULL);
 
 	list_push_back(&frame_table, &frame->frame_elem); // frame_table에 추가
+	
 	frame->pml4 = thread_current()->pml4; // frame의 pml4에 현재 스레드의 pml4 초기화
-
 	return frame;
 }
 

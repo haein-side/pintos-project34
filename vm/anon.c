@@ -5,7 +5,7 @@
 #include "bitmap.h"
 #include "threads/vaddr.h"
 
-#define PG_PER_SEC PGSIZE/DISK_SECTOR_SIZE
+#define PG_PER_SEC (PGSIZE/DISK_SECTOR_SIZE)
 
 /* DO NOT MODIFY BELOW LINE */
 static struct disk *swap_disk;
@@ -59,11 +59,11 @@ anon_swap_in (struct page *page, void *kva) {
 	
 	int slot_number = anon_page->slot_number;
 	int sec_no = anon_page->slot_number * PG_PER_SEC;
-	void *kva = page->frame->kva;
+	void *_kva = page->frame->kva;
 
 	for (int i=0; i<PG_PER_SEC; i++) {
-		disk_read(swap_disk, sec_no, kva);
-		kva += DISK_SECTOR_SIZE;
+		disk_read(swap_disk, sec_no, _kva);
+		_kva += DISK_SECTOR_SIZE;
 		sec_no++;
 	}
 	
