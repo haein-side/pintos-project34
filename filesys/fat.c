@@ -191,6 +191,7 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
 void
 fat_put (cluster_t clst, cluster_t val) {
 	/* TODO: Your code goes here. */
+   fat_fs->fat[clst] = val;
 }
 
 /* Fetch a value in the FAT table. */
