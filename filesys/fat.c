@@ -221,14 +221,18 @@ fat_put (cluster_t clst, cluster_t val) {
    (fat_fs->fat)[clst] = val;
 }
 
+/*** Dongdongbro ***/
 /* Fetch a value in the FAT table. */
 cluster_t
 fat_get (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	return (fat_fs->fat)[clst];
 }
 
+/*** Dongdongbro ***/
 /* Covert a cluster # to a sector number. */
 disk_sector_t
 cluster_to_sector (cluster_t clst) {
-   /* TODO: Your code goes here. */
+	/* TODO: Your code goes here. */
+	return fat_fs->data_start + clst;
 }
