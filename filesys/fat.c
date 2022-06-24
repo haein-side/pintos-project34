@@ -150,36 +150,78 @@ fat_boot_create (void) {
 	};
 }
 
+/*** GrilledSalmon ***/
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
+	fat_fs->fat_length = fat_fs->bs.total_sectors - (fat_fs->bs.fat_sectors + 1);
+	fat_fs->data_start = 1 + fat_fs->bs.fat_sectors;
 }
 
 /*----------------------------------------------------------------------------*/
 /* FAT handling                                                               */
 /*----------------------------------------------------------------------------*/
 
+/*** GrilledSalmon ***/
 /* Add a cluster to the chain.
  * If CLST is 0, start a new chain.
  * Returns 0 if fails to allocate a new cluster. */
 cluster_t
 fat_create_chain (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	cluster_t empty_clst = NULL;
+
+	/* Find Empty Cluster */
+	for (int i=0; i<fat_fs->fat_length; i++) {
+		if (fat_get(i) == NULL) {
+			empty_clst = i;
+			break;
+		}
+	}
+	if (empty_clst == NULL) {	/* There are no empty clusters. */
+		return NULL;
+	}
+
+	if (clst == 0) {	/* Create a New Chain */
+		fat_put(empty_clst, EOChain);
+	} else {
+		cluster_t next_clst = fat_get(clst);
+		fat_put(clst, empty_clst);
+		fat_put(empty_clst, next_clst);
+	}
+
+	return empty_clst;
 }
 
+/*** haein ***/
 /* Remove the chain of clusters starting from CLST.
  * If PCLST is 0, assume CLST as the start of the chain. */
 void
 fat_remove_chain (cluster_t clst, cluster_t pclst) {
-	/* TODO: Your code goes here. */
+   /* TODO: Your code goes here. */
+   cluster_t next_clst;
+
+   while (clst != EOChain) {
+	   next_clst = fat_get(clst);
+	   fat_put(clst, NULL);
+	   clst = next_clst;
+   }
+
+   if (pclst != 0) {
+   	fat_put(pclst, EOChain);
+   }
+
 }
 
+/*** haein ***/
 /* Update a value in the FAT table. */
 void
 fat_put (cluster_t clst, cluster_t val) {
 	/* TODO: Your code goes here. */
+   (fat_fs->fat)[clst] = val;
 }
 
+/*** Dongdongbro ***/
 /* Fetch a value in the FAT table. */
 cluster_t
 fat_get (cluster_t clst) {
@@ -187,6 +229,7 @@ fat_get (cluster_t clst) {
 	return (fat_fs->fat)[clst];
 }
 
+/*** Dongdongbro ***/
 /* Covert a cluster # to a sector number. */
 disk_sector_t
 cluster_to_sector (cluster_t clst) {
