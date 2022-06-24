@@ -193,17 +193,32 @@ fat_create_chain (cluster_t clst) {
 	return empty_clst;
 }
 
+/*** haein ***/
 /* Remove the chain of clusters starting from CLST.
  * If PCLST is 0, assume CLST as the start of the chain. */
 void
 fat_remove_chain (cluster_t clst, cluster_t pclst) {
-	/* TODO: Your code goes here. */
+   /* TODO: Your code goes here. */
+   cluster_t next_clst;
+
+   while (clst != EOChain) {
+	   next_clst = fat_get(clst);
+	   fat_put(clst, NULL);
+	   clst = next_clst;
+   }
+
+   if (pclst != 0) {
+   	fat_put(pclst, EOChain);
+   }
+
 }
 
+/*** haein ***/
 /* Update a value in the FAT table. */
 void
 fat_put (cluster_t clst, cluster_t val) {
 	/* TODO: Your code goes here. */
+   (fat_fs->fat)[clst] = val;
 }
 
 /* Fetch a value in the FAT table. */
@@ -215,5 +230,5 @@ fat_get (cluster_t clst) {
 /* Covert a cluster # to a sector number. */
 disk_sector_t
 cluster_to_sector (cluster_t clst) {
-	/* TODO: Your code goes here. */
+   /* TODO: Your code goes here. */
 }
