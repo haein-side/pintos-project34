@@ -154,6 +154,7 @@ fat_boot_create (void) {
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
+   lock_init(&fat_fs->write_lock);
 	fat_fs->fat_length = fat_fs->bs.total_sectors - (fat_fs->bs.fat_sectors + 1);
 	fat_fs->data_start = 1 + fat_fs->bs.fat_sectors;
 }
@@ -170,7 +171,7 @@ cluster_t
 fat_create_chain (cluster_t clst) {
 	/* TODO: Your code goes here. */
 	cluster_t empty_clst = NULL;
-
+   lock_acquire(&fat_fs->write_lock);
 	/* Find Empty Cluster */
 	for (int i=0; i<fat_fs->fat_length; i++) {
 		if (fat_get(i) == NULL) {
@@ -179,7 +180,8 @@ fat_create_chain (cluster_t clst) {
 		}
 	}
 	if (empty_clst == NULL) {	/* There are no empty clusters. */
-		return NULL;
+		lock_release(&fat_fs->write_lock);
+      return NULL;
 	}
 
 	if (clst == 0) {	/* Create a New Chain */
@@ -189,7 +191,7 @@ fat_create_chain (cluster_t clst) {
 		fat_put(clst, empty_clst);
 		fat_put(empty_clst, next_clst);
 	}
-
+   lock_release(&fat_fs->write_lock);
 	return empty_clst;
 }
 
@@ -201,6 +203,7 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
    /* TODO: Your code goes here. */
    cluster_t next_clst;
 
+   lock_acquire(&fat_fs->write_lock);
    while (clst != EOChain) {
 	   next_clst = fat_get(clst);
 	   fat_put(clst, NULL);
@@ -210,7 +213,7 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
    if (pclst != 0) {
    	fat_put(pclst, EOChain);
    }
-
+   lock_release(&fat_fs->write_lock);
 }
 
 /*** haein ***/
@@ -218,7 +221,9 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
 void
 fat_put (cluster_t clst, cluster_t val) {
 	/* TODO: Your code goes here. */
+   lock_acquire(&fat_fs->write_lock);
    (fat_fs->fat)[clst] = val;
+   lock_release(&fat_fs->write_lock);
 }
 
 /*** Dongdongbro ***/
@@ -226,7 +231,10 @@ fat_put (cluster_t clst, cluster_t val) {
 cluster_t
 fat_get (cluster_t clst) {
 	/* TODO: Your code goes here. */
-	return (fat_fs->fat)[clst];
+   lock_acquire(&fat_fs->write_lock);
+	cluster_t get_value = (fat_fs->fat)[clst];
+   lock_release(&fat_fs->write_lock);
+   return get_value;
 }
 
 /*** Dongdongbro ***/
