@@ -175,6 +175,7 @@ fat_create_chain (cluster_t clst) {
 	for (int i=0; i<fat_fs->fat_length; i++) {
 		if (fat_get(i) == NULL) {
 			empty_clst = i;
+			break;
 		}
 	}
 	if (empty_clst == NULL) {	/* There are no empty clusters. */
