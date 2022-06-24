@@ -184,7 +184,7 @@ fat_put (cluster_t clst, cluster_t val) {
 cluster_t
 fat_get (cluster_t clst) {
 	/* TODO: Your code goes here. */
-	return fat_fs->fat[clst];
+	return (fat_fs->fat)[clst];
 }
 
 /* Covert a cluster # to a sector number. */
