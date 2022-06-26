@@ -67,7 +67,7 @@ byte_to_sector (const struct inode *inode, off_t pos) {
 	}
 
 	/* cluster 내에서의 offset */
-	off_t clst_ofs = pos - clst*SECTORS_PER_CLUSTER*DISK_SECTOR_SIZE;
+	off_t clst_ofs = pos - nth_cluster*SECTORS_PER_CLUSTER*DISK_SECTOR_SIZE;
 
 	return cluster_to_sector(clst) + clst_ofs/DISK_SECTOR_SIZE;
 }
