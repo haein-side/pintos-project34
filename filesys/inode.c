@@ -6,6 +6,7 @@
 #include "filesys/filesys.h"
 #include "filesys/free-map.h"
 #include "threads/malloc.h"
+#include "filesys/fat.h"
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
@@ -36,6 +37,7 @@ struct inode {
 	struct inode_disk data;             /* Inode content. */
 };
 
+#ifndef EFILESYS
 /* Returns the disk sector that contains byte offset POS within
  * INODE.
  * Returns -1 if INODE does not contain data for a byte at offset
@@ -48,6 +50,28 @@ byte_to_sector (const struct inode *inode, off_t pos) {
 	else
 		return -1;
 }
+#else
+/*** GrilledSalmon ***/
+static disk_sector_t
+byte_to_sector (const struct inode *inode, off_t pos) {
+	ASSERT (inode != NULL);
+	if (pos >= inode->data.length) {
+		return -1;
+	}
+
+	int nth_cluster = pos / DISK_SECTOR_SIZE / SECTORS_PER_CLUSTER;
+	cluster_t clst = sector_to_cluster(inode->data.start);
+
+	for (int i=0; i<nth_cluster; i++) {
+		clst = fat_get(clst);
+	}
+
+	/* cluster 내에서의 offset */
+	off_t clst_ofs = pos - clst*SECTORS_PER_CLUSTER*DISK_SECTOR_SIZE;
+
+	return cluster_to_sector(clst) + clst_ofs/DISK_SECTOR_SIZE;
+}
+#endif
 
 /* List of open inodes, so that opening a single inode twice
  * returns the same `struct inode'. */
@@ -143,6 +167,7 @@ inode_get_inumber (const struct inode *inode) {
 	return inode->sector;
 }
 
+/*** GrilledSalmon ***/
 /* Closes INODE and writes it to disk.
  * If this was the last reference to INODE, frees its memory.
  * If INODE was also a removed inode, frees its blocks. */
@@ -159,9 +184,14 @@ inode_close (struct inode *inode) {
 
 		/* Deallocate blocks if removed. */
 		if (inode->removed) {
+#ifdef EFILESYS
+			fat_remove_chain(sector_to_cluster(inode->sector), 0);
+			fat_remove_chain(sector_to_cluster(inode->data.start), 0);
+#else
 			free_map_release (inode->sector, 1);
 			free_map_release (inode->data.start,
 					bytes_to_sectors (inode->data.length)); 
+#endif
 		}
 
 		free (inode); 

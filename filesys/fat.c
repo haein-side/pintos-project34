@@ -191,7 +191,7 @@ fat_create_chain (cluster_t clst) {
 		fat_put(clst, empty_clst);
 		fat_put(empty_clst, next_clst);
 	}
-   lock_release(&fat_fs->write_lock);
+    lock_release(&fat_fs->write_lock);
 	return empty_clst;
 }
 
@@ -243,4 +243,11 @@ disk_sector_t
 cluster_to_sector (cluster_t clst) {
 	/* TODO: Your code goes here. */
 	return fat_fs->data_start + clst;
+}
+
+/*** GrilledSalmon ***/	
+/*** Convert a sector # to a cluster #***/
+cluster_t
+sector_to_cluster (disk_sector_t sector) {
+	return sector - fat_fs->data_start;
 }
