@@ -244,3 +244,10 @@ cluster_to_sector (cluster_t clst) {
 	/* TODO: Your code goes here. */
 	return fat_fs->data_start + clst;
 }
+
+/*** GrilledSalmon ***/	
+/*** Convert a sector # to a cluster #***/
+cluster_t
+sector_to_cluster (disk_sector_t sector) {
+	return sector - fat_fs->data_start;
+}
