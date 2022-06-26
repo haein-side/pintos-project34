@@ -246,7 +246,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
 	return bytes_read;
 }
 
-/*** haein ***/
+/*** haein&GrilledSalmon ***/
 static bool
 file_growth(struct inode *inode, off_t new_length) {
 	off_t origin_length = inode_length(inode);
@@ -276,7 +276,7 @@ file_growth(struct inode *inode, off_t new_length) {
 	return true;
 }
 
-/*** haein ***/
+/*** haein&GrilledSalmon ***/
 /* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
  * Returns the number of bytes actually written, which may be
  * less than SIZE if end of file is reached or an error occurs.
