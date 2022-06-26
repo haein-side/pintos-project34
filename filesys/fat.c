@@ -191,7 +191,7 @@ fat_create_chain (cluster_t clst) {
 		fat_put(clst, empty_clst);
 		fat_put(empty_clst, next_clst);
 	}
-   lock_release(&fat_fs->write_lock);
+    lock_release(&fat_fs->write_lock);
 	return empty_clst;
 }
 
@@ -200,20 +200,20 @@ fat_create_chain (cluster_t clst) {
  * If PCLST is 0, assume CLST as the start of the chain. */
 void
 fat_remove_chain (cluster_t clst, cluster_t pclst) {
-   /* TODO: Your code goes here. */
-   cluster_t next_clst;
+	/* TODO: Your code goes here. */
+	cluster_t next_clst;
 
-   lock_acquire(&fat_fs->write_lock);
-   while (clst != EOChain) {
-	   next_clst = fat_get(clst);
-	   fat_put(clst, NULL);
-	   clst = next_clst;
-   }
+	lock_acquire(&fat_fs->write_lock);
+	while (clst != EOChain) {
+		next_clst = fat_get(clst);
+		fat_put(clst, NULL);
+		clst = next_clst;
+	}
 
-   if (pclst != 0) {
-   	fat_put(pclst, EOChain);
-   }
-   lock_release(&fat_fs->write_lock);
+	if (pclst != 0) {
+	fat_put(pclst, EOChain);
+	}
+	lock_release(&fat_fs->write_lock);
 }
 
 /*** haein ***/
@@ -221,9 +221,9 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
 void
 fat_put (cluster_t clst, cluster_t val) {
 	/* TODO: Your code goes here. */
-   lock_acquire(&fat_fs->write_lock);
-   (fat_fs->fat)[clst] = val;
-   lock_release(&fat_fs->write_lock);
+	lock_acquire(&fat_fs->write_lock);
+	(fat_fs->fat)[clst] = val;
+	lock_release(&fat_fs->write_lock);
 }
 
 /*** Dongdongbro ***/
@@ -231,10 +231,10 @@ fat_put (cluster_t clst, cluster_t val) {
 cluster_t
 fat_get (cluster_t clst) {
 	/* TODO: Your code goes here. */
-   lock_acquire(&fat_fs->write_lock);
+	lock_acquire(&fat_fs->write_lock);
 	cluster_t get_value = (fat_fs->fat)[clst];
-   lock_release(&fat_fs->write_lock);
-   return get_value;
+	lock_release(&fat_fs->write_lock);
+	return get_value;
 }
 
 /*** Dongdongbro ***/
