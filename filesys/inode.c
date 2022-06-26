@@ -6,6 +6,7 @@
 #include "filesys/filesys.h"
 #include "filesys/free-map.h"
 #include "threads/malloc.h"
+#include "filesys/fat.h"
 
 /* Identifies an inode. */
 #define INODE_MAGIC 0x494e4f44
@@ -21,6 +22,7 @@ struct inode_disk {
 
 /* Returns the number of sectors to allocate for an inode SIZE
  * bytes long. */
+/* inode SIZE 바이트 길이에 할당할 섹터 수를 반환합니다. */
 static inline size_t
 bytes_to_sectors (off_t size) {
 	return DIV_ROUND_UP (size, DISK_SECTOR_SIZE);
@@ -40,6 +42,8 @@ struct inode {
  * INODE.
  * Returns -1 if INODE does not contain data for a byte at offset
  * POS. */
+// INODE 내에 바이트 오프셋 POS가 포함된 디스크 섹터를 반환합니다.
+// INODE에 오프셋 POS에서 바이트에 대한 데이터가 없는 경우 -1을 반환합니다.
 static disk_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) {
 	ASSERT (inode != NULL);
@@ -59,6 +63,7 @@ inode_init (void) {
 	list_init (&open_inodes);
 }
 
+/*** haein ***/
 /* Initializes an inode with LENGTH bytes of data and
  * writes the new inode to sector SECTOR on the file system
  * disk.
@@ -77,20 +82,36 @@ inode_create (disk_sector_t sector, off_t length) {
 
 	disk_inode = calloc (1, sizeof *disk_inode);
 	if (disk_inode != NULL) {
-		size_t sectors = bytes_to_sectors (length);
+		size_t sectors = bytes_to_sectors (length); // 오프셋의 섹터 넘버
 		disk_inode->length = length;
 		disk_inode->magic = INODE_MAGIC;
+		static char zeros[DISK_SECTOR_SIZE];
+#ifdef EFILESYS
+		cluster_t startclst = 0;
+
+		while (length > 0) {
+			startclst = fat_create_chain(startclst); // Create Chain
+			if (startclst == 0) { // Creation Fail
+				return false;
+			}
+			disk_write (filesys_disk, cluster_to_sector(startclst), zeros); // write zeros on statclst sector
+			length -= DISK_SECTOR_SIZE;
+		}
+
+		disk_write (filesys_disk, sector, disk_inode); // write on sector once from disk_inode
+		success = true;
+#else
 		if (free_map_allocate (sectors, &disk_inode->start)) {
 			disk_write (filesys_disk, sector, disk_inode);
 			if (sectors > 0) {
-				static char zeros[DISK_SECTOR_SIZE];
 				size_t i;
 
 				for (i = 0; i < sectors; i++) 
 					disk_write (filesys_disk, disk_inode->start + i, zeros); 
 			}
 			success = true; 
-		} 
+		}
+#endif
 		free (disk_inode);
 	}
 	return success;
@@ -225,11 +246,43 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset) {
 	return bytes_read;
 }
 
+/*** haein ***/
+static bool
+file_growth(struct inode *inode, off_t new_length) {
+	off_t origin_length = inode_length(inode);
+	off_t growth = 0; // 늘어난 크기
+	cluster_t last_clst = sector_to_cluster(byte_to_sector(inode, origin_length));
+	static char zeros[DISK_SECTOR_SIZE];
+
+	/* Update file length */
+	inode->data.length = new_length;
+
+	if (origin_length%DISK_SECTOR_SIZE == 0 || ((new_length) > (origin_length - origin_length%DISK_SECTOR_SIZE + DISK_SECTOR_SIZE))) {
+		/* Extend File */
+		while (growth < new_length - origin_length) {
+			last_clst = fat_create_chain(last_clst);
+			if (last_clst == NULL) { /* Creation Fail */
+				if (origin_length%DISK_SECTOR_SIZE == 0) {
+					inode->data.length = origin_length + growth;	
+				} else {
+					inode->data.length = origin_length + growth - growth%DISK_SECTOR_SIZE + DISK_SECTOR_SIZE;
+				}
+				return false;
+			}
+			disk_write (filesys_disk, cluster_to_sector(last_clst), zeros); 
+			growth += DISK_SECTOR_SIZE;
+		}
+	}
+	return true;
+}
+
+/*** haein ***/
 /* Writes SIZE bytes from BUFFER into INODE, starting at OFFSET.
  * Returns the number of bytes actually written, which may be
  * less than SIZE if end of file is reached or an error occurs.
  * (Normally a write at end of file would extend the inode, but
  * growth is not yet implemented.) */
+// 버퍼의 크기 바이트를 inode의 오프셋에서 시작하여 INODE에 씁니다. 
 off_t
 inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 		off_t offset) {
@@ -240,10 +293,17 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
 	if (inode->deny_write_cnt)
 		return 0;
 
+#ifdef EFILESYS
+	/* File Growth Check */
+	if (offset + size > inode_length(inode)) {
+		file_growth(inode, offset+size);
+	}
+#endif
+
 	while (size > 0) {
 		/* Sector to write, starting byte offset within sector. */
-		disk_sector_t sector_idx = byte_to_sector (inode, offset);
-		int sector_ofs = offset % DISK_SECTOR_SIZE;
+		disk_sector_t sector_idx = byte_to_sector (inode, offset); // write할 inode의 offset에 대응되는 sector의 인덱스
+		int sector_ofs = offset % DISK_SECTOR_SIZE; 			   // sector 내에서의 offset
 
 		/* Bytes left in inode, bytes left in sector, lesser of the two. */
 		off_t inode_left = inode_length (inode) - offset;
