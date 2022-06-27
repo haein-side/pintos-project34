@@ -58,7 +58,7 @@ byte_to_sector (const struct inode *inode, off_t pos) {
 static disk_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) {
 	ASSERT (inode != NULL);
-	if (pos >= inode->data.length) {
+	if (pos > inode->data.length) {
 		return -1;
 	}
 
@@ -111,7 +111,7 @@ inode_create (disk_sector_t sector, off_t length) {
 #ifdef EFILESYS
 		cluster_t startclst = 0;
 		bool first = true;
-		while (length > 0) {
+		while (length >= 0) {
 			startclst = fat_create_chain(startclst); // Create Chain
 			if (startclst == 0) { // Creation Fail
 				return false;
@@ -205,7 +205,7 @@ inode_close (struct inode *inode) {
 	if (--inode->open_cnt == 0) {
 		/* Remove from inode list and release lock. */
 		list_remove (&inode->elem);
-
+		disk_write (filesys_disk, inode->sector, &inode->data);
 		/* Deallocate blocks if removed. */
 		if (inode->removed) {
 #ifdef EFILESYS

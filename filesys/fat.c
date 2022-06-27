@@ -215,7 +215,7 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
 	}
 
 	if (pclst != 0) {
-	fat_put(pclst, EOChain);
+		fat_put(pclst, EOChain);
 	}
 	lock_release(&fat_fs->write_lock);
 }
