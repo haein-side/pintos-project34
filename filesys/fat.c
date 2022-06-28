@@ -5,6 +5,7 @@
 #include "threads/synch.h"
 #include <stdio.h>
 #include <string.h>
+#include "filesys/directory.h"
 
 /* Should be less than DISK_SECTOR_SIZE */
 struct fat_boot {
@@ -113,6 +114,7 @@ fat_close (void) {
 	}
 }
 
+/*** GrilledSalmon ***/
 void
 fat_create (void) {
 	// Create FAT boot
@@ -126,13 +128,15 @@ fat_create (void) {
 
 	// Set up ROOT_DIR_CLST
 	fat_put (ROOT_DIR_CLUSTER, EOChain);
+	if (!dir_create (cluster_to_sector(ROOT_DIR_CLUSTER), 16))
+		PANIC ("root directory creation failed");
 
 	// Fill up ROOT_DIR_CLUSTER region with 0
-	uint8_t *buf = calloc (1, DISK_SECTOR_SIZE);
-	if (buf == NULL)
-		PANIC ("FAT create failed due to OOM");
-	disk_write (filesys_disk, cluster_to_sector (ROOT_DIR_CLUSTER), buf);
-	free (buf);
+	// uint8_t *buf = calloc (1, DISK_SECTOR_SIZE);
+	// if (buf == NULL)
+	// 	PANIC ("FAT create failed due to OOM");
+	// disk_write (filesys_disk, cluster_to_sector (ROOT_DIR_CLUSTER), buf);
+	// free (buf);
 }
 
 void
@@ -150,44 +154,100 @@ fat_boot_create (void) {
 	};
 }
 
+/*** GrilledSalmon ***/
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
+    lock_init(&fat_fs->write_lock);
+	fat_fs->fat_length = fat_fs->bs.total_sectors - (fat_fs->bs.fat_sectors + 1);
+	fat_fs->data_start = 1 + fat_fs->bs.fat_sectors;
 }
 
 /*----------------------------------------------------------------------------*/
 /* FAT handling                                                               */
 /*----------------------------------------------------------------------------*/
 
+/*** GrilledSalmon ***/
 /* Add a cluster to the chain.
  * If CLST is 0, start a new chain.
  * Returns 0 if fails to allocate a new cluster. */
 cluster_t
 fat_create_chain (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	cluster_t empty_clst = NULL;
+    lock_acquire(&fat_fs->write_lock);
+	/* Find Empty Cluster */
+	for (int i=2; i<fat_fs->fat_length; i++) {
+		if (fat_get(i) == NULL) {
+			empty_clst = i;
+			break;
+		}
+	}
+	if (empty_clst == NULL) {	/* There are no empty clusters. */
+		lock_release(&fat_fs->write_lock);
+      return NULL;
+	}
+
+	if (clst == 0) {	/* Create a New Chain */
+		fat_put(empty_clst, EOChain);
+	} else {
+		cluster_t next_clst = fat_get(clst);
+		fat_put(clst, empty_clst);
+		fat_put(empty_clst, next_clst);
+	}
+    lock_release(&fat_fs->write_lock);
+	return empty_clst;
 }
 
+/*** haein ***/
 /* Remove the chain of clusters starting from CLST.
  * If PCLST is 0, assume CLST as the start of the chain. */
 void
 fat_remove_chain (cluster_t clst, cluster_t pclst) {
 	/* TODO: Your code goes here. */
+	cluster_t next_clst;
+
+	lock_acquire(&fat_fs->write_lock);
+	while (clst != EOChain) {
+		next_clst = fat_get(clst);
+		fat_put(clst, NULL);
+		clst = next_clst;
+	}
+
+	if (pclst != 0) {
+		fat_put(pclst, EOChain);
+	}
+	lock_release(&fat_fs->write_lock);
 }
 
+/*** haein ***/
 /* Update a value in the FAT table. */
 void
 fat_put (cluster_t clst, cluster_t val) {
 	/* TODO: Your code goes here. */
+	(fat_fs->fat)[clst] = val;
 }
 
+/*** Dongdongbro ***/
 /* Fetch a value in the FAT table. */
 cluster_t
 fat_get (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	cluster_t get_value = (fat_fs->fat)[clst];
+	return get_value;
 }
 
+/*** Dongdongbro ***/
 /* Covert a cluster # to a sector number. */
 disk_sector_t
 cluster_to_sector (cluster_t clst) {
 	/* TODO: Your code goes here. */
+	return fat_fs->data_start + clst;
+}
+
+/*** GrilledSalmon ***/	
+/*** Convert a sector # to a cluster #***/
+cluster_t
+sector_to_cluster (disk_sector_t sector) {
+	return sector - fat_fs->data_start;
 }
