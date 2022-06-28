@@ -58,7 +58,7 @@ byte_to_sector (const struct inode *inode, off_t pos) {
 static disk_sector_t
 byte_to_sector (const struct inode *inode, off_t pos) {
 	ASSERT (inode != NULL);
-	if (pos >= inode->data.length) {
+	if (pos > inode->data.length) {
 		return -1;
 	}
 
@@ -105,17 +105,20 @@ inode_create (disk_sector_t sector, off_t length) {
 
 	disk_inode = calloc (1, sizeof *disk_inode);
 	if (disk_inode != NULL) {
-		size_t sectors = bytes_to_sectors (length); // 오프셋의 섹터 넘버
 		disk_inode->length = length;
 		disk_inode->magic = INODE_MAGIC;
 		static char zeros[DISK_SECTOR_SIZE];
 #ifdef EFILESYS
 		cluster_t startclst = 0;
-
-		while (length > 0) {
+		bool first = true;
+		while (length >= 0) {
 			startclst = fat_create_chain(startclst); // Create Chain
 			if (startclst == 0) { // Creation Fail
 				return false;
+			}
+			if (first) {
+				disk_inode->start = cluster_to_sector(startclst);
+				first = false;
 			}
 			disk_write (filesys_disk, cluster_to_sector(startclst), zeros); // write zeros on statclst sector
 			length -= DISK_SECTOR_SIZE;
@@ -124,6 +127,7 @@ inode_create (disk_sector_t sector, off_t length) {
 		disk_write (filesys_disk, sector, disk_inode); // write on sector once from disk_inode
 		success = true;
 #else
+		size_t sectors = bytes_to_sectors (length); // 오프셋의 섹터 넘버
 		if (free_map_allocate (sectors, &disk_inode->start)) {
 			disk_write (filesys_disk, sector, disk_inode);
 			if (sectors > 0) {
@@ -201,7 +205,7 @@ inode_close (struct inode *inode) {
 	if (--inode->open_cnt == 0) {
 		/* Remove from inode list and release lock. */
 		list_remove (&inode->elem);
-
+		disk_write (filesys_disk, inode->sector, &inode->data);
 		/* Deallocate blocks if removed. */
 		if (inode->removed) {
 #ifdef EFILESYS

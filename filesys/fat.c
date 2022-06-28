@@ -5,6 +5,7 @@
 #include "threads/synch.h"
 #include <stdio.h>
 #include <string.h>
+#include "filesys/directory.h"
 
 /* Should be less than DISK_SECTOR_SIZE */
 struct fat_boot {
@@ -113,6 +114,7 @@ fat_close (void) {
 	}
 }
 
+/*** GrilledSalmon ***/
 void
 fat_create (void) {
 	// Create FAT boot
@@ -126,13 +128,15 @@ fat_create (void) {
 
 	// Set up ROOT_DIR_CLST
 	fat_put (ROOT_DIR_CLUSTER, EOChain);
+	if (!dir_create (cluster_to_sector(ROOT_DIR_CLUSTER), 16))
+		PANIC ("root directory creation failed");
 
 	// Fill up ROOT_DIR_CLUSTER region with 0
-	uint8_t *buf = calloc (1, DISK_SECTOR_SIZE);
-	if (buf == NULL)
-		PANIC ("FAT create failed due to OOM");
-	disk_write (filesys_disk, cluster_to_sector (ROOT_DIR_CLUSTER), buf);
-	free (buf);
+	// uint8_t *buf = calloc (1, DISK_SECTOR_SIZE);
+	// if (buf == NULL)
+	// 	PANIC ("FAT create failed due to OOM");
+	// disk_write (filesys_disk, cluster_to_sector (ROOT_DIR_CLUSTER), buf);
+	// free (buf);
 }
 
 void
@@ -154,7 +158,7 @@ fat_boot_create (void) {
 void
 fat_fs_init (void) {
 	/* TODO: Your code goes here. */
-   lock_init(&fat_fs->write_lock);
+    lock_init(&fat_fs->write_lock);
 	fat_fs->fat_length = fat_fs->bs.total_sectors - (fat_fs->bs.fat_sectors + 1);
 	fat_fs->data_start = 1 + fat_fs->bs.fat_sectors;
 }
@@ -171,9 +175,9 @@ cluster_t
 fat_create_chain (cluster_t clst) {
 	/* TODO: Your code goes here. */
 	cluster_t empty_clst = NULL;
-   lock_acquire(&fat_fs->write_lock);
+    lock_acquire(&fat_fs->write_lock);
 	/* Find Empty Cluster */
-	for (int i=0; i<fat_fs->fat_length; i++) {
+	for (int i=2; i<fat_fs->fat_length; i++) {
 		if (fat_get(i) == NULL) {
 			empty_clst = i;
 			break;
@@ -211,7 +215,7 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
 	}
 
 	if (pclst != 0) {
-	fat_put(pclst, EOChain);
+		fat_put(pclst, EOChain);
 	}
 	lock_release(&fat_fs->write_lock);
 }
@@ -221,9 +225,7 @@ fat_remove_chain (cluster_t clst, cluster_t pclst) {
 void
 fat_put (cluster_t clst, cluster_t val) {
 	/* TODO: Your code goes here. */
-	lock_acquire(&fat_fs->write_lock);
 	(fat_fs->fat)[clst] = val;
-	lock_release(&fat_fs->write_lock);
 }
 
 /*** Dongdongbro ***/
@@ -231,9 +233,7 @@ fat_put (cluster_t clst, cluster_t val) {
 cluster_t
 fat_get (cluster_t clst) {
 	/* TODO: Your code goes here. */
-	lock_acquire(&fat_fs->write_lock);
 	cluster_t get_value = (fat_fs->fat)[clst];
-	lock_release(&fat_fs->write_lock);
 	return get_value;
 }
 
